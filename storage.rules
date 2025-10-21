@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Users can upload and read their own profile images
+    match /users/{userId}/profile/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Users can upload and read media in chats they participate in
+    match /chats/{chatId}/media/{fileName} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid in firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants;
+    }
+    
+    // Users can upload and read media in groups they are members of
+    match /groups/{groupId}/media/{fileName} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid in firestore.get(/databases/(default)/documents/groups/$(groupId)).data.members;
+    }
+  }
+}
+

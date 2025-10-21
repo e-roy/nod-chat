@@ -1,0 +1,170 @@
+---
+alwaysApply: true
+---
+
+## Goal
+
+Build a production-grade **Expo (React Native) + Firebase** messaging app with a clean, scalable architecture and fast iteration in Cursor.
+
+- **Package manager:** `pnpm` (workspaces)
+- **Architecture:** feature-first folders, small modules, pluggable messaging transport
+- **UI:** **gluestack-ui** (RN-first, themeable)
+- **Rule of 350:** Keep app source files **≤ 350 LOC** when reasonable.
+  **Exceptions:** vendor configs, generated theme/token files, and third-party UI config may exceed this limit.
+
+---
+
+## Monorepo & Workspace Layout
+
+```
+/apps
+  /mobile                 # Expo app (React Native)
+    /src
+      /app                # entry, providers, navigation
+      /ui                 # gluestack provider, theme, component wrappers
+        /components       # Button, Input, Avatar, Badge, Card, Sheet, Toast, etc.
+        /theme            # tokens, overrides, config (vendor files can exceed 350 LOC)
+      /features
+        /auth             # screens, hooks, services for authentication
+        /chat             # chat list, chat screen, composer, message bubbles
+        /presence         # online/offline indicators, typing
+        /groups           # group creation, membership, group chat
+        /media            # image picker, upload pipeline, viewer
+        /settings         # profile, preferences
+      /messaging
+        transport.ts      # interface (connect, send, onMessage, requestHistory)
+        firebaseTransport.ts
+        // (room to add another transport later without changing UI)
+      /firebase
+        firebaseApp.ts    # initializeApp using env from app.config.ts
+        rules/            # firestore.rules, storage.rules (MVP-safe defaults)
+      /store              # zustand stores: auth, chat list, messages, connection
+      /utils              # ids, time, env, logger, validation
+      /types              # shared app types (re-export from /packages/shared if needed)
+
+/packages
+  /shared                 # reusable TS types & pure utilities (no RN deps)
+
+/services                 # reserved for backend services (empty for now)
+/infra                    # reserved for local tooling, docker, scripts (empty for now)
+```
+
+**Conventions**
+
+- **Feature-first**: each feature owns its screens, hooks, and small services.
+- **Pluggable transport**: UI never calls Firestore directly; it talks to `MessagingTransport`.
+- **Absolute imports** via `tsconfig` paths (`@/ui/...`, `@/features/chat/...`, etc.).
+
+---
+
+## Tech Stack (Mobile)
+
+- **Expo** (latest SDK; let `npx expo install` resolve compatible versions)
+- **React Navigation** (native stack + bottom tabs)
+- **State**: **Zustand**
+- **Storage/Offline**: `@react-native-async-storage/async-storage`
+- **Firebase Web SDK** (Auth, Firestore, Storage, Messaging)
+- **UI**: **gluestack-ui** (`@gluestack-ui/themed`, `@gluestack-ui/config`, `@gluestack-style/react`)
+- **Core RN deps**: `react-native-safe-area-context`, `react-native-screens`, `react-native-svg`, `react-native-reanimated`, `react-native-gesture-handler`
+- **Forms/Validation**: lightweight (e.g., Zod) when needed—keep forms simple in MVP
+- **Testing** (optional later): `@testing-library/react-native`, vitest/jest
+
+**Install guidance**
+
+- Prefer `npx expo install <pkg>` for Expo-managed modules to ensure native compatibility.
+- Use caret ranges for JS-only libs; avoid pinning patch versions unless necessary.
+
+---
+
+## UI & Theming (gluestack-ui)
+
+- Provide a single **UI provider** that wraps the app: `GluestackUIProvider` with a base theme from `@gluestack-ui/config`.
+- Create thin wrappers in `/ui/components` for common primitives: `Button`, `Input`, `Textarea`, `Avatar`, `Badge`, `Card`, `Sheet/Actionsheet`, `Toast`, `Spinner`, `Image`.
+- Keep custom wrappers small; push visual variants into token/theme files.
+- Accessibility: ensure touch targets ≥ 44px; provide `accessibilityLabel` for interactive controls.
+
+**File-size rule exception**
+Theme/token/config files under `/ui/theme` can exceed 350 LOC (vendor/generator outputs). All other app code should strive to be ≤ 350 LOC.
+
+---
+
+## Firebase (MVP)
+
+- **Auth**: Email/Password for now (phone auth optional later)
+- **Firestore**: chats, messages, groups, minimal metadata
+- **Storage**: media uploads (images first)
+- **(Optional) RTDB**: presence with `onDisconnect` and mirrored flags
+- **Rules**: MVP-safe defaults included under `/firebase/rules/`, then hardened later
+
+**Config**
+
+- Read Firebase config from `app.config.ts` → `extra.firebase` (never hardcode in source).
+- For local development, support `.env` or `app.config.ts` fallbacks.
+
+---
+
+## Messaging Transport
+
+Create a stable interface so UI is data-source agnostic:
+
+```ts
+// /apps/mobile/src/messaging/transport.ts
+export type ChatMessage = {
+  id: string;
+  chatId: string;
+  senderId: string;
+  text?: string;
+  imageUrl?: string | null;
+  createdAt: number; // ms epoch; also allow serverTime mapping in adapter
+  status?: "sending" | "sent" | "delivered" | "read";
+};
+
+export interface MessagingTransport {
+  connect(userId: string): Promise<void>;
+  send(msg: ChatMessage): Promise<void>;
+  onMessage(chatId: string, cb: (m: ChatMessage) => void): () => void;
+  requestHistory(chatId: string, limit?: number): Promise<ChatMessage[]>;
+}
+```
+
+- **Phase 1–5**: implement `firebaseTransport.ts` only.
+- Later transports can be added without touching UI/screens.
+
+---
+
+## Coding Standards
+
+- **TypeScript strict**; no `any` in app code.
+- **ESLint + Prettier**; keep imports clean; no dead code.
+- **Functions**: pure where possible; side effects isolated in stores/services.
+- **Idempotency**: client-generated UUIDs for messages; adapters must avoid duplicates.
+- **Error handling**: user-friendly toasts for network/upload errors; console log in dev only.
+- **Performance**: memoize heavy lists, use FlatList with proper keys, windowing for message lists.
+
+---
+
+## Commit & PR etiquette (Cursor)
+
+- One Cursor phase = one focused PR (e.g., `feat: Phase 2 — one-on-one messaging`).
+- Keep diffs small, self-describing, and runnable.
+- Update `README` snippets when adding env keys or scripts.
+
+---
+
+## What NOT to do
+
+- Don’t bypass the transport abstraction from UI.
+- Don’t hardcode secrets or Firebase config in source.
+- Don’t dump >350 LOC into single modules (except allowed UI theme/config files).
+- Don’t introduce heavyweight state libraries; stick to Zustand for global state + simple hooks.
+
+---
+
+## Initial Tasks Cursor Can Assume
+
+1. Create Expo app in `apps/mobile` (TypeScript).
+2. Add gluestack provider (`/ui/index.tsx`) and a couple of wrappers (`Button`, `Input`).
+3. Wire navigation (Auth stack → Main tabs).
+4. Add Firebase init (`/firebase/firebaseApp.ts`) reading from `app.config.ts`.
+5. Create `MessagingTransport` + `firebaseTransport.ts` stub (to be filled in Phase 2).
+6. Add minimal Firestore/Storage rules under `/firebase/rules/`.
