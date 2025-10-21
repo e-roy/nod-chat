@@ -1,7 +1,7 @@
 {
   "name": "chatapp-monorepo",
   "private": true,
-  "packageManager": "pnpm@9",
+  "packageManager": "pnpm@10.18.3",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -13,11 +13,15 @@
   ],
   "scripts": {
     "dev": "pnpm --filter @chatapp/mobile dev",
+    "dev:tunnel": "pnpm --filter @chatapp/mobile start --tunnel --port 8082",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "build": "pnpm -r build",
     "clean": "pnpm -r run clean || true",
     "deploy:firestore": "firebase deploy --only firestore",
-    "deploy:storage": "firebase deploy --only storage"
+    "deploy:storage": "firebase deploy --only storage",
+    "emulators": "firebase emulators:start",
+    "emulators:auth": "firebase emulators:start --only auth",
+    "emulators:firestore": "firebase emulators:start --only firestore"
   }
 }

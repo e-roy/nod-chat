@@ -156,3 +156,6 @@ firebase-debug.*.log
 
 # docs files
 docs/
+
+# android files
+android/

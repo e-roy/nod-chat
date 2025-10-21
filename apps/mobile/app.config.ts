@@ -1,4 +1,4 @@
-import { ExpoConfig, ConfigContext } from "expo/config";
+import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   // Load environment variables (Expo handles .env automatically)
@@ -14,29 +14,30 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: "ChatApp",
-    slug: "chatapp",
-    version: "1.0.0",
-    orientation: "portrait",
-    icon: "./assets/icon.png",
-    userInterfaceStyle: "light",
+    name: 'ChatApp',
+    slug: 'chatapp',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/icon.png',
+    userInterfaceStyle: 'light',
     splash: {
-      image: "./assets/splash-icon.png",
-      resizeMode: "contain",
-      backgroundColor: "#ffffff",
+      image: './assets/splash-icon.png',
+      resizeMode: 'contain',
+      backgroundColor: '#ffffff',
     },
-    assetBundlePatterns: ["**/*"],
+    assetBundlePatterns: ['**/*'],
     ios: {
       supportsTablet: true,
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#ffffff",
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#ffffff',
       },
+      package: 'com.chatapp.mobile',
     },
     web: {
-      favicon: "./assets/favicon.png",
+      favicon: './assets/favicon.png',
     },
     extra: {
       firebase: firebaseConfig,

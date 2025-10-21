@@ -96,6 +96,45 @@ pnpm --filter @chatapp/mobile ios
 pnpm --filter @chatapp/mobile web
 ```
 
+### 5. Multi-Device Development Setup
+
+For testing on multiple devices simultaneously:
+
+#### Start Firebase Emulators
+
+```bash
+pnpm run emulators
+```
+
+#### iPhone/Physical Device (Expo Go)
+
+```bash
+pnpm run dev
+```
+
+- Scan QR code with Expo Go app
+- Connects to port 8081
+
+#### Android Emulator (Tunnel Mode)
+
+```bash
+pnpm run dev:tunnel
+```
+
+- Open Expo Go on Android emulator
+- Scan QR code from tunnel server
+- **Or manually enter**: `exp://10.1.10.90:8082` (replace with your computer's IP)
+- Connects to port 8082
+- Uses tunnel mode to bypass version compatibility issues
+
+#### Complete Development Workflow
+
+1. **Terminal 1**: `pnpm run emulators` (Firebase emulators)
+2. **Terminal 2**: `pnpm run dev` (iPhone/Expo Go)
+3. **Terminal 3**: `pnpm run dev:tunnel` (Android emulator)
+
+Both devices will connect to the same Firebase emulators, allowing you to test real-time messaging between iPhone and Android emulator.
+
 ### 5. Deploy Firebase Rules
 
 ```bash
@@ -119,7 +158,9 @@ firebase deploy --only storage
 
 ```bash
 # Development
-pnpm dev                    # Start Expo development server
+pnpm dev                    # Start Expo development server (iPhone/Expo Go)
+pnpm dev:tunnel             # Start Expo tunnel server (Android emulator)
+pnpm run emulators          # Start Firebase emulators
 pnpm --filter @chatapp/mobile android  # Run on Android
 pnpm --filter @chatapp/mobile ios      # Run on iOS
 pnpm --filter @chatapp/mobile web      # Run on Web
