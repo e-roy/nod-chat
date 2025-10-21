@@ -1,10 +1,10 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp } from 'firebase/app';
 // @ts-ignore
-import { initializeAuth, getReactNativePersistence } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-import Constants from "expo-constants";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import Constants from 'expo-constants';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // Try both methods to get Firebase config
 const configFromConstants = Constants.expoConfig?.extra?.firebase;
@@ -25,7 +25,7 @@ const firebaseConfig =
 
 if (!firebaseConfig || !firebaseConfig.apiKey) {
   throw new Error(
-    "Firebase configuration not found. Please check your app.config.ts and environment variables."
+    'Firebase configuration not found. Please check your app.config.ts and environment variables.'
   );
 }
 
