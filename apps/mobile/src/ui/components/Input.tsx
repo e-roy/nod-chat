@@ -1,13 +1,13 @@
-import React from "react";
-import { TextInput, StyleSheet, View } from "react-native";
+import React from 'react';
+import { TextInput, StyleSheet, View } from 'react-native';
 
 interface InputProps {
   placeholder?: string;
   value: string;
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
-  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad";
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoCorrect?: boolean;
   editable?: boolean;
 }
@@ -17,8 +17,8 @@ export const Input: React.FC<InputProps> = ({
   value,
   onChangeText,
   secureTextEntry = false,
-  keyboardType = "default",
-  autoCapitalize = "sentences",
+  keyboardType = 'default',
+  autoCapitalize = 'sentences',
   autoCorrect = true,
   editable = true,
 }) => {
@@ -46,17 +46,17 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#E5E5E5",
+    borderColor: '#E5E5E5',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     minHeight: 48,
   },
   disabled: {
-    backgroundColor: "#F5F5F5",
-    color: "#999999",
+    backgroundColor: '#F5F5F5',
+    color: '#999999',
   },
 });
 

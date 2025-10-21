@@ -1,10 +1,10 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from "react-native";
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 
 interface ToastProps {
   title?: string;
   description?: string;
-  action?: "success" | "error" | "warning" | "info";
+  action?: 'success' | 'error' | 'warning' | 'info';
   isVisible: boolean;
   onClose: () => void;
 }
@@ -12,7 +12,7 @@ interface ToastProps {
 export const Toast: React.FC<ToastProps> = ({
   title,
   description,
-  action = "info",
+  action = 'info',
   isVisible,
   onClose,
 }) => {
@@ -20,14 +20,14 @@ export const Toast: React.FC<ToastProps> = ({
 
   const getToastStyle = () => {
     switch (action) {
-      case "success":
-        return { backgroundColor: "#10B981" };
-      case "error":
-        return { backgroundColor: "#EF4444" };
-      case "warning":
-        return { backgroundColor: "#F59E0B" };
+      case 'success':
+        return { backgroundColor: '#10B981' };
+      case 'error':
+        return { backgroundColor: '#EF4444' };
+      case 'warning':
+        return { backgroundColor: '#F59E0B' };
       default:
-        return { backgroundColor: "#3B82F6" };
+        return { backgroundColor: '#3B82F6' };
     }
   };
 
@@ -58,32 +58,32 @@ export const Toast: React.FC<ToastProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   container: {
     borderRadius: 8,
     padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     minWidth: 200,
-    maxWidth: "90%",
+    maxWidth: '90%',
   },
   content: {
     flex: 1,
   },
   title: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    fontWeight: '600',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   description: {
     fontSize: 14,
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     opacity: 0.9,
   },
   closeButton: {
@@ -92,8 +92,8 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 20,
-    color: "#FFFFFF",
-    fontWeight: "bold",
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
 });
 

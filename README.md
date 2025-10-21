@@ -1,5 +1,3 @@
-# ChatApp - Phase 1
-
 A production-grade Expo (React Native) + Firebase messaging app with clean, scalable architecture.
 
 ## Project Structure
@@ -71,6 +69,8 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
 ```
 
+**Important:** Never commit your `.env` file to version control. The `.gitignore` file already excludes it.
+
 ### 3. Install Dependencies
 
 ```bash
@@ -113,6 +113,31 @@ firebase deploy --only firestore:rules
 firebase deploy --only storage
 ```
 
+## Development
+
+### Available Scripts
+
+```bash
+# Development
+pnpm dev                    # Start Expo development server
+pnpm --filter @chatapp/mobile android  # Run on Android
+pnpm --filter @chatapp/mobile ios      # Run on iOS
+pnpm --filter @chatapp/mobile web      # Run on Web
+
+# Code Quality
+pnpm --filter @chatapp/mobile lint     # Run ESLint
+pnpm --filter @chatapp/mobile lint:fix # Fix ESLint issues
+pnpm --filter @chatapp/mobile format   # Format code with Prettier
+pnpm --filter @chatapp/mobile typecheck # TypeScript type checking
+
+# Testing
+pnpm --filter @chatapp/mobile test     # Run tests
+pnpm --filter @chatapp/mobile test:watch # Run tests in watch mode
+
+# Build
+pnpm --filter @chatapp/mobile build    # Build for production
+```
+
 ## Features Implemented (Phase 1)
 
 - ✅ Project structure with monorepo setup
@@ -124,6 +149,9 @@ firebase deploy --only storage
 - ✅ Zustand state management
 - ✅ Firebase security rules (MVP-safe defaults)
 - ✅ Session persistence
+- ✅ ESLint + Prettier code quality tools
+- ✅ Basic unit tests for auth store
+- ✅ Firebase rules properly organized
 
 ## Tech Stack
 
@@ -134,8 +162,10 @@ firebase deploy --only storage
 - **Firebase Web SDK** (Auth, Firestore, Storage)
 - **UI**: **gluestack-ui** (`@gluestack-ui/themed`, `@gluestack-ui/config`, `@gluestack-style/react`)
 - **Core RN deps**: `react-native-safe-area-context`, `react-native-screens`, `react-native-svg`, `react-native-reanimated`, `react-native-gesture-handler`
+- **Testing**: `@testing-library/react-native`, `jest-expo`
+- **Code Quality**: ESLint, Prettier, TypeScript
 
-## Development
+## Architecture
 
 - **Package manager:** `pnpm` (workspaces)
 - **Architecture:** feature-first folders, small modules, pluggable messaging transport

@@ -10,11 +10,18 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write src/**/*.{ts,tsx}",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "build": "expo export",
     "clean": "rm -rf .expo dist"
   },
   "dependencies": {
     "@chatapp/shared": "workspace:*",
+    "@gluestack-style/react": "^1.0.57",
+    "@gluestack-ui/config": "^1.1.20",
+    "@gluestack-ui/themed": "^1.1.73",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.4.9",
     "@react-navigation/native": "^7.1.18",
@@ -38,7 +45,24 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "@react-native/eslint-config": "^0.82.1",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint": "^8.57.0",
+    "eslint-config-expo": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "eslint-plugin-react-native": "^5.0.0",
+    "jest-expo": "^54.0.12",
+    "prettier": "^3.6.2",
+    "ts-jest": "^29.4.5",
     "typescript": "~5.9.2"
   },
   "private": true

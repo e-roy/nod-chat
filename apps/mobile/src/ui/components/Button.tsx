@@ -1,16 +1,16 @@
-import React from "react";
+import React from 'react';
 import {
   TouchableOpacity,
   Text,
   StyleSheet,
   ActivityIndicator,
-} from "react-native";
+} from 'react-native';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: "solid" | "outline" | "link";
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  variant?: 'solid' | 'outline' | 'link';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   disabled?: boolean;
   loading?: boolean;
 }
@@ -18,8 +18,8 @@ interface ButtonProps {
 export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
-  variant = "solid",
-  size = "md",
+  variant = 'solid',
+  size = 'md',
   disabled = false,
   loading = false,
 }) => {
@@ -46,7 +46,7 @@ export const Button: React.FC<ButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === "solid" ? "#ffffff" : "#007AFF"}
+          color={variant === 'solid' ? '#ffffff' : '#007AFF'}
         />
       ) : (
         <Text style={textStyle}>{title}</Text>
@@ -58,21 +58,21 @@ export const Button: React.FC<ButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   solid: {
-    backgroundColor: "#007AFF",
+    backgroundColor: '#007AFF',
   },
   outline: {
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: "#007AFF",
+    borderColor: '#007AFF',
   },
   link: {
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
   xs: {
     paddingHorizontal: 8,
@@ -98,16 +98,16 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   text: {
-    fontWeight: "600",
+    fontWeight: '600',
   },
   solidText: {
-    color: "#ffffff",
+    color: '#ffffff',
   },
   outlineText: {
-    color: "#007AFF",
+    color: '#007AFF',
   },
   linkText: {
-    color: "#007AFF",
+    color: '#007AFF',
   },
   xsText: {
     fontSize: 12,

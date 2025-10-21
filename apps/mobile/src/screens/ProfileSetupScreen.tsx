@@ -1,19 +1,19 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Button, Input } from "../ui/components";
-import { useAuthStore } from "../store/auth";
-import { showAlert } from "../utils/alert";
+import React, { useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Input } from '../ui/components';
+import { useAuthStore } from '../store/auth';
+import { showAlert } from '../utils/alert';
 
 const ProfileSetupScreen: React.FC = () => {
-  const [displayName, setDisplayName] = useState("");
+  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { user, updateProfile } = useAuthStore();
+  const { updateProfile } = useAuthStore();
 
   const handleCompleteProfile = async () => {
     if (!displayName.trim()) {
-      showAlert("Error", "Please enter your display name");
+      showAlert('Error', 'Please enter your display name');
       return;
     }
 
@@ -22,7 +22,7 @@ const ProfileSetupScreen: React.FC = () => {
       await updateProfile({ displayName: displayName.trim() });
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      showAlert("Error", error.message);
+      showAlert('Error', error.message);
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ const ProfileSetupScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
   },
   content: {
     flex: 1,
@@ -79,12 +79,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: "#000",
+    fontWeight: 'bold',
+    color: '#000',
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: '#666',
   },
   form: {
     flex: 1,
@@ -95,12 +95,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#000",
+    fontWeight: '600',
+    color: '#000',
   },
   buttonContainer: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
     gap: 16,
   },
 });

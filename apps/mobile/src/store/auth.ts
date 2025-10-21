@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -6,10 +6,10 @@ import {
   updateProfile,
   onAuthStateChanged,
   User as FirebaseUser,
-} from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase/firebaseApp";
-import { User } from "@chatapp/shared";
+} from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase/firebaseApp';
+import { User } from '@chatapp/shared';
 
 interface AuthState {
   user: User | null;
@@ -37,7 +37,7 @@ const createUserDocument = async (
   firebaseUser: FirebaseUser,
   displayName: string
 ) => {
-  const userRef = doc(db, "users", firebaseUser.uid);
+  const userRef = doc(db, 'users', firebaseUser.uid);
   const userSnap = await getDoc(userRef);
   if (!userSnap.exists()) {
     const userData: User = {
@@ -99,14 +99,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       );
       const firebaseUser = userCredential.user;
       // Get user document from Firestore
-      const userRef = doc(db, "users", firebaseUser.uid);
+      const userRef = doc(db, 'users', firebaseUser.uid);
       const userSnap = await getDoc(userRef);
       let user: User;
       if (userSnap.exists()) {
         user = userSnap.data() as User;
       } else {
         // Create user document if it doesn't exist
-        await createUserDocument(firebaseUser, firebaseUser.displayName || "");
+        await createUserDocument(firebaseUser, firebaseUser.displayName || '');
         user = firebaseUserToUser(firebaseUser);
       }
       set({ user, loading: false });
@@ -130,10 +130,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   updateProfile: async (updates: Partial<User>) => {
     try {
       const { user } = get();
-      if (!user) throw new Error("No user logged in");
+      if (!user) throw new Error('No user logged in');
       set({ loading: true, error: null });
       // Update Firestore document - remove undefined values
-      const userRef = doc(db, "users", user.uid);
+      const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, removeUndefined(updates), { merge: true });
       // Update Firebase Auth profile if needed
       if (updates.displayName || updates.photoURL) {
@@ -154,13 +154,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 }));
 
 // Listen to auth state changes
-onAuthStateChanged(auth, async (firebaseUser) => {
-  const { loading } = useAuthStore.getState();
-
+onAuthStateChanged(auth, async firebaseUser => {
   if (firebaseUser) {
     try {
       // Get user document from Firestore
-      const userRef = doc(db, "users", firebaseUser.uid);
+      const userRef = doc(db, 'users', firebaseUser.uid);
       const userSnap = await getDoc(userRef);
 
       let user: User;
@@ -168,13 +166,13 @@ onAuthStateChanged(auth, async (firebaseUser) => {
         user = userSnap.data() as User;
       } else {
         // Create user document if it doesn't exist
-        await createUserDocument(firebaseUser, firebaseUser.displayName || "");
+        await createUserDocument(firebaseUser, firebaseUser.displayName || '');
         user = firebaseUserToUser(firebaseUser);
       }
 
       useAuthStore.setState({ user, loading: false });
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      console.error('Error fetching user data:', error);
       useAuthStore.setState({ loading: false });
     }
   } else {
