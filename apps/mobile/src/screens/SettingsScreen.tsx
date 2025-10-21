@@ -1,8 +1,8 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Button } from "../ui/components";
-import { useAuthStore } from "../store/auth";
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, ButtonText } from '@ui/button';
+import { useAuthStore } from '../store/auth';
 
 const SettingsScreen: React.FC = () => {
   const { user, signOut } = useAuthStore();
@@ -11,7 +11,7 @@ const SettingsScreen: React.FC = () => {
     try {
       await signOut();
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error('Sign out error:', error);
     }
   };
 
@@ -26,18 +26,16 @@ const SettingsScreen: React.FC = () => {
           <View style={styles.subsection}>
             <Text style={styles.sectionTitle}>Profile</Text>
             <Text style={styles.infoText}>
-              Name: {user?.displayName || "Not set"}
+              Name: {user?.displayName || 'Not set'}
             </Text>
             <Text style={styles.infoText}>Email: {user?.email}</Text>
           </View>
 
           <View style={styles.subsection}>
             <Text style={styles.sectionTitle}>Account</Text>
-            <Button
-              title="Sign Out"
-              onPress={handleSignOut}
-              variant="outline"
-            />
+            <Button onPress={handleSignOut} variant="outline">
+              <ButtonText>Sign Out</ButtonText>
+            </Button>
           </View>
         </View>
       </View>
@@ -48,7 +46,7 @@ const SettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
   },
   content: {
     flex: 1,
@@ -60,8 +58,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: "#000",
+    fontWeight: 'bold',
+    color: '#000',
   },
   section: {
     gap: 24,
@@ -71,12 +69,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#000",
+    fontWeight: '600',
+    color: '#000',
   },
   infoText: {
     fontSize: 16,
-    color: "#666",
+    color: '#666',
   },
 });
 

@@ -1,9 +1,9 @@
-const { getDefaultConfig } = require("expo/metro-config");
+const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
 
 const config = getDefaultConfig(__dirname);
 
-// Add support for web
-config.resolver.platforms = ["ios", "android", "native", "web"];
+// Ensure CSS files are processed
+config.resolver.sourceExts.push('css');
 
-module.exports = config;
-
+module.exports = withNativeWind(config, { input: './global.css' });

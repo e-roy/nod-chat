@@ -21,8 +21,9 @@ Build a production-grade **Expo (React Native) + Firebase** messaging app with a
   /mobile                 # Expo app (React Native)
     /src
       /app                # entry, providers, navigation
-      /ui                 # gluestack provider, theme, component wrappers
-        /components       # Button, Input, Avatar, Badge, Card, Sheet, Toast, etc.
+      /components         # gluestack-ui components (Button, Input, Toast, etc.)
+        /ui               # gluestack-ui component implementations
+      /ui                 # gluestack provider, theme, custom components
         /theme            # tokens, overrides, config (vendor files can exceed 350 LOC)
       /features
         /auth             # screens, hooks, services for authentication
@@ -53,7 +54,7 @@ Build a production-grade **Expo (React Native) + Firebase** messaging app with a
 
 - **Feature-first**: each feature owns its screens, hooks, and small services.
 - **Pluggable transport**: UI never calls Firestore directly; it talks to `MessagingTransport`.
-- **Absolute imports** via `tsconfig` paths (`@/ui/...`, `@/features/chat/...`, etc.).
+- **Absolute imports** via `tsconfig` paths (`@ui/button`, `@ui/input`, `@ui/toast`, `@/features/chat/...`, etc.).
 
 ---
 
@@ -79,8 +80,12 @@ Build a production-grade **Expo (React Native) + Firebase** messaging app with a
 ## UI & Theming (gluestack-ui)
 
 - Provide a single **UI provider** that wraps the app: `GluestackUIProvider` with a base theme from `@gluestack-ui/config`.
-- Create thin wrappers in `/ui/components` for common primitives: `Button`, `Input`, `Textarea`, `Avatar`, `Badge`, `Card`, `Sheet/Actionsheet`, `Toast`, `Spinner`, `Image`.
-- Keep custom wrappers small; push visual variants into token/theme files.
+- Use gluestack-ui components directly from `/components/ui/` with imports like `@ui/button`, `@ui/input`, `@ui/toast`.
+- No custom wrappers needed - gluestack-ui components provide all necessary functionality.
+- Component usage patterns:
+  - **Button**: `<Button><ButtonText>Text</ButtonText></Button>` with `onPress`, `variant`, `size` props
+  - **Input**: `<Input><InputField placeholder="..." /></Input>` with `onChangeText`, `value` props
+  - **Toast**: Use `useToast()` hook with `toast.show({ render: () => <Toast>...</Toast> })`
 - Accessibility: ensure touch targets ≥ 44px; provide `accessibilityLabel` for interactive controls.
 
 **File-size rule exception**
@@ -163,7 +168,7 @@ export interface MessagingTransport {
 ## Initial Tasks Cursor Can Assume
 
 1. Create Expo app in `apps/mobile` (TypeScript).
-2. Add gluestack provider (`/ui/index.tsx`) and a couple of wrappers (`Button`, `Input`).
+2. Add gluestack provider (`/ui/index.tsx`) and configure gluestack-ui components.
 3. Wire navigation (Auth stack → Main tabs).
 4. Add Firebase init (`/firebase/firebaseApp.ts`) reading from `app.config.ts`.
 5. Create `MessagingTransport` + `firebaseTransport.ts` stub (to be filled in Phase 2).

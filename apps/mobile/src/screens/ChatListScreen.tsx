@@ -1,8 +1,8 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Button } from "../ui/components";
-import { useAuthStore } from "../store/auth";
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, ButtonText } from '@ui/button';
+import { useAuthStore } from '../store/auth';
 
 const ChatListScreen: React.FC = () => {
   const { user, signOut } = useAuthStore();
@@ -11,7 +11,7 @@ const ChatListScreen: React.FC = () => {
     try {
       await signOut();
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error('Sign out error:', error);
     }
   };
 
@@ -29,7 +29,9 @@ const ChatListScreen: React.FC = () => {
           <Text style={styles.emptyText}>
             No chats yet. Start a conversation!
           </Text>
-          <Button title="Sign Out" onPress={handleSignOut} variant="outline" />
+          <Button onPress={handleSignOut} variant="outline">
+            <ButtonText>Sign Out</ButtonText>
+          </Button>
         </View>
       </View>
     </SafeAreaView>
@@ -39,7 +41,7 @@ const ChatListScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
   },
   content: {
     flex: 1,
@@ -52,23 +54,23 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: "#000",
+    fontWeight: 'bold',
+    color: '#000',
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: '#666',
   },
   centerContent: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: 24,
   },
   emptyText: {
     fontSize: 16,
-    textAlign: "center",
-    color: "#666",
+    textAlign: 'center',
+    color: '#666',
   },
 });
 

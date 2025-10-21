@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input } from '../ui/components';
+import { Button, ButtonText, ButtonSpinner } from '@ui/button';
+import { Input, InputField } from '@ui/input';
 import { useAuthStore } from '../store/auth';
 import { showAlert } from '../utils/alert';
 
@@ -41,21 +42,24 @@ const ProfileSetupScreen: React.FC = () => {
         <View style={styles.form}>
           <View style={styles.inputSection}>
             <Text style={styles.label}>Display Name</Text>
-            <Input
-              placeholder="Enter your display name"
-              value={displayName}
-              onChangeText={setDisplayName}
-              autoCapitalize="words"
-            />
+            <Input>
+              <InputField
+                placeholder="Enter your display name"
+                value={displayName}
+                onChangeText={setDisplayName}
+                autoCapitalize="words"
+              />
+            </Input>
           </View>
 
           <View style={styles.buttonContainer}>
-            <Button
-              title="Complete Profile"
-              onPress={handleCompleteProfile}
-              loading={loading}
-              disabled={loading}
-            />
+            <Button onPress={handleCompleteProfile} isDisabled={loading}>
+              {loading ? (
+                <ButtonSpinner />
+              ) : (
+                <ButtonText>Complete Profile</ButtonText>
+              )}
+            </Button>
           </View>
         </View>
       </View>
