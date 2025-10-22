@@ -1,22 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  View,
-  Text as RNText,
-} from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { RootStackParamList } from '../types/navigation';
+import { RootStackParamList } from '@/types/navigation';
 
 import { Button, ButtonText } from '@ui/button';
 import { Input, InputField } from '@ui/input';
 import { Avatar, AvatarFallbackText } from '@ui/avatar';
+import { Text } from '@ui/text';
+import { Box } from '@ui/box';
+import { VStack } from '@ui/vstack';
+import { HStack } from '@ui/hstack';
 // import { Spinner } from '@ui/spinner'; // TODO: Re-enable when typing indicators work
-import { useChatStore } from '../store/chat';
-import { useAuthStore } from '../store/auth';
-import { usePresenceStore } from '../store/presence';
+import { useChatStore } from '@/store/chat';
+import { useAuthStore } from '@/store/auth';
+import { usePresenceStore } from '@/store/presence';
 import { ChatMessage } from '@chatapp/shared';
 
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
@@ -110,94 +108,69 @@ const ChatScreen: React.FC = () => {
     const isOwnMessage = item.senderId === user?.uid;
 
     return (
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
-          marginBottom: 12,
-          paddingHorizontal: 16,
-        }}
+      <HStack
+        className={`mb-3 px-4 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+        justifyContent={isOwnMessage ? 'end' : 'start'}
       >
-        <View
-          style={{
-            maxWidth: '80%',
-            alignItems: isOwnMessage ? 'flex-end' : 'flex-start',
-          }}
+        <VStack
+          className={`max-w-[80%] ${isOwnMessage ? 'items-end' : 'items-start'}`}
+          alignItems={isOwnMessage ? 'end' : 'start'}
         >
-          <View
-            style={{
-              backgroundColor: isOwnMessage ? '#007AFF' : '#f0f0f0',
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 16,
-              borderTopLeftRadius: isOwnMessage ? 16 : 4,
-              borderTopRightRadius: isOwnMessage ? 4 : 16,
-            }}
+          <Box
+            className={`px-3 py-2 rounded-2xl ${
+              isOwnMessage
+                ? 'bg-blue-500 rounded-br-md'
+                : 'bg-neutral-200 dark:bg-neutral-700 rounded-bl-md'
+            }`}
           >
-            <RNText
-              style={{
-                color: isOwnMessage ? '#fff' : '#000',
-                fontSize: 14,
-              }}
+            <Text
+              className={`text-sm ${
+                isOwnMessage
+                  ? 'text-white'
+                  : 'text-neutral-900 dark:text-neutral-100'
+              }`}
             >
               {item.text}
-            </RNText>
-          </View>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginTop: 4,
-              gap: 4,
-            }}
-          >
-            <RNText
-              style={{
-                fontSize: 12,
-                color: '#666',
-              }}
-            >
+            </Text>
+          </Box>
+          <HStack className="items-center mt-1 gap-1" alignItems="center">
+            <Text className="text-xs text-neutral-500 dark:text-neutral-400">
               {new Date(item.createdAt).toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
-            </RNText>
+            </Text>
             {isOwnMessage && (
-              <RNText
-                style={{
-                  fontSize: 12,
-                  color: item.status === 'read' ? '#007AFF' : '#666',
-                  fontWeight: item.status === 'read' ? 'bold' : 'normal',
-                }}
+              <Text
+                className={`text-xs ${
+                  item.status === 'read'
+                    ? 'text-blue-500 font-bold'
+                    : 'text-neutral-500 dark:text-neutral-400'
+                }`}
               >
                 {getMessageStatusIcon(item.status || 'sent')}
-              </RNText>
+              </Text>
             )}
-          </View>
-        </View>
-      </View>
+          </HStack>
+        </VStack>
+      </HStack>
     );
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Header */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: '#e0e0e0',
-          }}
+        <HStack
+          className="items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-700"
+          alignItems="center"
+          justifyContent="between"
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ position: 'relative' }}>
+          <HStack className="items-center gap-3" alignItems="center">
+            <Box className="relative">
               <Avatar size="sm">
                 <AvatarFallbackText>
                   {participantName?.charAt(0) || 'U'}
@@ -213,30 +186,16 @@ const ChatScreen: React.FC = () => {
                   : false;
                 return (
                   isOnline && (
-                    <View
-                      style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        right: 0,
-                        width: 10,
-                        height: 10,
-                        borderRadius: 5,
-                        backgroundColor: '#10B981',
-                        borderWidth: 2,
-                        borderColor: '#fff',
-                      }}
-                    />
+                    <Box className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-neutral-50 dark:border-neutral-950" />
                   )
                 );
               })()}
-            </View>
-            <View>
-              <RNText style={{ fontSize: 18, fontWeight: '600' }}>
+            </Box>
+            <VStack>
+              <Text className="text-lg font-semibold">
                 {participantName || 'Unknown User'}
-              </RNText>
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-              >
+              </Text>
+              <HStack className="items-center gap-1" alignItems="center">
                 {(() => {
                   // TODO: Re-enable typing indicators later
                   // const typingUsersInChat = typingUsers.get(chatId) || [];
@@ -251,9 +210,9 @@ const ChatScreen: React.FC = () => {
                   //   return (
                   //     <>
                   //       <Spinner size="small" />
-                  //       <RNText style={{ fontSize: 14, color: '#666' }}>
+                  //       <Text className="text-sm text-neutral-500 dark:text-neutral-400">
                   //         typing...
-                  //       </RNText>
+                  //       </Text>
                   //     </>
                   //   );
                   // }
@@ -262,15 +221,15 @@ const ChatScreen: React.FC = () => {
                     ? userPresence.get(otherParticipant)?.online
                     : false;
                   return (
-                    <RNText style={{ fontSize: 14, color: '#666' }}>
+                    <Text className="text-sm text-neutral-500 dark:text-neutral-400">
                       {isOnline ? 'Online' : 'Offline'}
-                    </RNText>
+                    </Text>
                   );
                 })()}
-              </View>
-            </View>
-          </View>
-        </View>
+              </HStack>
+            </VStack>
+          </HStack>
+        </HStack>
 
         {/* Messages */}
         <FlatList
@@ -278,7 +237,7 @@ const ChatScreen: React.FC = () => {
           data={chatMessages}
           keyExtractor={item => item.id}
           renderItem={renderMessage}
-          style={{ flex: 1 }}
+          className="flex-1"
           contentContainerStyle={{ paddingVertical: 16 }}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
@@ -286,17 +245,11 @@ const ChatScreen: React.FC = () => {
         />
 
         {/* Message Input */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            padding: 16,
-            borderTopWidth: 1,
-            borderTopColor: '#e0e0e0',
-            gap: 12,
-          }}
+        <HStack
+          className="items-center p-4 border-t border-neutral-200 dark:border-neutral-700 gap-3"
+          alignItems="center"
         >
-          <Input style={{ flex: 1 }}>
+          <Input className="flex-1">
             <InputField
               placeholder="Type a message..."
               value={messageText}
@@ -312,7 +265,7 @@ const ChatScreen: React.FC = () => {
           >
             <ButtonText>Send</ButtonText>
           </Button>
-        </View>
+        </HStack>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

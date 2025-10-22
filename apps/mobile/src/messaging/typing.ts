@@ -8,8 +8,8 @@ import {
   onChildRemoved,
   off,
 } from 'firebase/database';
-import { rtdb } from '../firebase/firebaseApp';
-import { useAuthStore } from '../store/auth';
+import { rtdb } from '@/firebase/firebaseApp';
+import { useAuthStore } from '@/store/auth';
 
 interface TypingState {
   isTyping: boolean;

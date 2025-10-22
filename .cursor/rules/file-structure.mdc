@@ -21,10 +21,8 @@ Build a production-grade **Expo (React Native) + Firebase** messaging app with a
   /mobile                 # Expo app (React Native)
     /src
       /app                # entry, providers, navigation
-      /components         # gluestack-ui components (Button, Input, Toast, etc.)
-        /ui               # gluestack-ui component implementations
-      /ui                 # gluestack provider, theme, custom components
-        /theme            # tokens, overrides, config (vendor files can exceed 350 LOC)
+      /components         # general UI components
+        /ui               # gluestack-ui component implementations (Button, Input, Toast, etc.)
       /features
         /auth             # screens, hooks, services for authentication
         /chat             # chat list, chat screen, composer, message bubbles
@@ -37,8 +35,7 @@ Build a production-grade **Expo (React Native) + Firebase** messaging app with a
         firebaseTransport.ts
         // (room to add another transport later without changing UI)
       /firebase
-        firebaseApp.ts    # initializeApp using env from app.config.ts
-        rules/            # firestore.rules, storage.rules (MVP-safe defaults)
+        firebaseApp.ts    # initializeApp
       /store              # zustand stores: auth, chat list, messages, connection
       /utils              # ids, time, env, logger, validation
       /types              # shared app types (re-export from /packages/shared if needed)

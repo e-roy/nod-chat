@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Input, InputField } from '@ui/input';
 import { useToast, Toast, ToastTitle, ToastDescription } from '@ui/toast';
 import { Button, ButtonText } from '@ui/button';
-import { useAuthStore } from '../store/auth';
-import { showAlert } from '../utils/alert';
+import { Alert, AlertText } from '@ui/alert';
+import { Text } from '@ui/text';
+import { Box } from '@ui/box';
+import { VStack } from '@ui/vstack';
+import { HStack } from '@ui/hstack';
+
+import { useAuthStore } from '@/store/auth';
 
 const AuthScreen: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -14,6 +18,7 @@ const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [validationError, setValidationError] = useState('');
 
   const { signUp, signIn, error, clearError } = useAuthStore();
   const toast = useToast();
@@ -35,17 +40,18 @@ const AuthScreen: React.FC = () => {
 
   const handleAuth = async () => {
     if (!email || !password) {
-      showAlert('Error', 'Please fill in all fields');
+      setValidationError('Please fill in all fields');
       return;
     }
 
     if (isSignUp && !displayName) {
-      showAlert('Error', 'Please enter your display name');
+      setValidationError('Please enter your display name');
       return;
     }
 
     try {
       setLoading(true);
+      setValidationError('');
       clearError();
 
       if (isSignUp) {
@@ -54,27 +60,41 @@ const AuthScreen: React.FC = () => {
         await signIn(email, password);
       }
     } catch (err: any) {
-      showAlert('Error', err.message);
+      toast.show({
+        placement: 'top',
+        render: ({ id }) => (
+          <Toast nativeID={id} action="error">
+            <ToastTitle>Error</ToastTitle>
+            <ToastDescription>{err.message}</ToastDescription>
+          </Toast>
+        ),
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>
+    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <VStack className="flex-1 justify-center px-6 space-y-6">
+        <VStack className="items-center space-y-2">
+          <Text className="text-3xl font-bold text-center">
             {isSignUp ? 'Create Account' : 'Welcome Back'}
           </Text>
-          <Text style={styles.subtitle}>
+          <Text className="text-base text-center text-neutral-600 dark:text-neutral-300">
             {isSignUp
               ? 'Sign up to start chatting with friends'
               : 'Sign in to continue chatting'}
           </Text>
-        </View>
+        </VStack>
 
-        <View style={styles.form}>
+        <VStack className="space-y-4">
+          {validationError && (
+            <Alert action="error" variant="outline">
+              <AlertText>{validationError}</AlertText>
+            </Alert>
+          )}
+
           {isSignUp && (
             <Input>
               <InputField
@@ -117,14 +137,13 @@ const AuthScreen: React.FC = () => {
           >
             <ButtonText>{isSignUp ? 'Sign Up' : 'Sign In'}</ButtonText>
           </Button>
-        </View>
+        </VStack>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
+        <HStack className="justify-center items-center space-x-2">
+          <Text className="text-base text-neutral-600 dark:text-neutral-300">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
           </Text>
           <Button
-            // title={isSignUp ? 'Sign In' : 'Sign Up'}
             onPress={() => {
               setIsSignUp(!isSignUp);
               setEmail('');
@@ -136,51 +155,10 @@ const AuthScreen: React.FC = () => {
           >
             <ButtonText>{isSignUp ? 'Sign In' : 'Sign Up'}</ButtonText>
           </Button>
-        </View>
-      </View>
+        </HStack>
+      </VStack>
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    gap: 24,
-  },
-  header: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#000',
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#666',
-  },
-  form: {
-    gap: 16,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  footerText: {
-    fontSize: 16,
-    color: '#666',
-  },
-});
 
 export default AuthScreen;

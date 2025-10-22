@@ -64,9 +64,12 @@ Create a `.env` file in the `apps/mobile` directory:
 EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key_here
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+EXPO_PUBLIC_FIREBASE_DATABASE_URL=
 EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
 EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
+
+EXPO_PUBLIC_EMULATOR_HOST=10.1.10.90
 ```
 
 **Important:** Never commit your `.env` file to version control. The `.gitignore` file already excludes it.

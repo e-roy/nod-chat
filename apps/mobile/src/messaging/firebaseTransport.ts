@@ -15,7 +15,7 @@ import {
   Timestamp,
   writeBatch,
 } from 'firebase/firestore';
-import { db } from '../firebase/firebaseApp';
+import { db } from '@/firebase/firebaseApp';
 import {
   MessagingTransport,
   ChatTransport,
@@ -51,12 +51,19 @@ export class FirebaseTransport
 
       // For group messages, initialize readBy with sender
       const messageData: any = {
-        ...msg,
+        id: msg.id,
+        chatId: msg.chatId,
+        senderId: msg.senderId,
+        text: msg.text,
         status: 'sent', // Set status to 'sent' when writing to Firestore
         createdAt: serverTimestamp(),
       };
 
-      if (isGroupMessage && msg.readBy) {
+      // Only include optional fields if they're defined
+      if (msg.imageUrl !== undefined) {
+        messageData.imageUrl = msg.imageUrl;
+      }
+      if (msg.readBy !== undefined) {
         messageData.readBy = msg.readBy;
       }
 
@@ -100,7 +107,7 @@ export class FirebaseTransport
             imageUrl: data.imageUrl,
             createdAt: data.createdAt?.toMillis?.() || Date.now(),
             status: data.status || 'sent',
-            readBy: data.readBy || [],
+            readBy: data.readBy || undefined,
           };
           cb(message);
         }
@@ -140,7 +147,7 @@ export class FirebaseTransport
           imageUrl: data.imageUrl,
           createdAt: data.createdAt?.toMillis?.() || Date.now(),
           status: data.status || 'sent',
-          readBy: data.readBy || [],
+          readBy: data.readBy || undefined,
         });
       });
 

@@ -6,31 +6,30 @@ import {
   Pressable,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   NativeStackNavigationProp,
   NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import {
-  Box,
-  Text,
-  Avatar,
-  AvatarImage,
-  AvatarFallbackText,
-  HStack,
-  VStack,
-  Input,
-  InputField,
-  Button,
-  ButtonText,
-  Spinner,
-} from '@ui/index';
-import { useChatStore } from '../store/chat';
-import { useGroupStore } from '../store/groups';
-import { useAuthStore } from '../store/auth';
+
+import { Avatar, AvatarImage, AvatarFallbackText } from '@ui/avatar';
+import { Box } from '@ui/box';
+import { Button, ButtonText } from '@ui/button';
+import { Text } from '@ui/text';
+import { HStack } from '@ui/hstack';
+import { VStack } from '@ui/vstack';
+import { Input } from '@ui/input';
+import { InputField } from '@ui/input';
+import { Spinner } from '@ui/spinner';
+
+import { useChatStore } from '@/store/chat';
+import { useGroupStore } from '@/store/groups';
+import { useAuthStore } from '@/store/auth';
 import { ChatMessage, Group, User } from '@chatapp/shared';
-import { RootStackParamList } from '../types/navigation';
-import { db } from '../firebase/firebaseApp';
+import { RootStackParamList } from '@/types/navigation';
+
+import { db } from '@/firebase/firebaseApp';
 
 type GroupChatScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -158,45 +157,45 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
 
     return (
       <Box
-        style={{
-          padding: 12,
-          marginBottom: 8,
-          alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
-          maxWidth: '80%',
-        }}
+        className={`p-3 mb-2 max-w-[80%] ${
+          isOwnMessage ? 'self-end' : 'self-start'
+        }`}
       >
         {!isOwnMessage && (
-          <Text fontSize="xs" color="gray500" style={{ marginBottom: 4 }}>
+          <Text className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
             {senderName}
           </Text>
         )}
 
         <Box
-          style={{
-            backgroundColor: isOwnMessage ? '#3b82f6' : '#f3f4f6',
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 12,
-            borderTopLeftRadius: isOwnMessage ? 12 : 4,
-            borderTopRightRadius: isOwnMessage ? 4 : 12,
-          }}
+          className={`px-3 py-2 rounded-xl ${
+            isOwnMessage
+              ? 'bg-blue-500 rounded-br-md'
+              : 'bg-neutral-200 dark:bg-neutral-700 rounded-bl-md'
+          }`}
         >
-          <Text color={isOwnMessage ? 'white' : 'black'} fontSize="md">
+          <Text
+            className={`text-sm ${
+              isOwnMessage
+                ? 'text-white'
+                : 'text-neutral-900 dark:text-neutral-100'
+            }`}
+          >
             {item.text}
           </Text>
         </Box>
 
         <HStack
           justifyContent={isOwnMessage ? 'end' : 'start'}
-          style={{ marginTop: 4 }}
+          className="mt-1"
           space="xs"
         >
-          <Text fontSize="xs" color="gray500">
+          <Text className="text-xs text-neutral-500 dark:text-neutral-400">
             {formatTime(item.createdAt)}
           </Text>
 
           {isOwnMessage && (
-            <Text fontSize="xs" color="gray500">
+            <Text className="text-xs text-neutral-500 dark:text-neutral-400">
               {item.status === 'sending'
                 ? 'Sending...'
                 : item.status === 'sent'
@@ -209,7 +208,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
         </HStack>
 
         {!isOwnMessage && item.readBy && (
-          <Text fontSize="xs" color="gray500" style={{ marginTop: 4 }}>
+          <Text className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
             Read by {item.readBy.length} member
             {item.readBy.length !== 1 ? 's' : ''}
           </Text>
@@ -220,29 +219,25 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
 
   if (!group) {
     return (
-      <Box style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Spinner size="large" />
-        <Text style={{ marginTop: 16, color: '#6b7280' }}>
-          Loading group...
-        </Text>
-      </Box>
+      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+        <VStack className="flex-1 justify-center items-center">
+          <Spinner size="large" />
+          <Text className="mt-4 text-neutral-600 dark:text-neutral-300">
+            Loading group...
+          </Text>
+        </VStack>
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <Box style={{ flex: 1, backgroundColor: '#ffffff' }}>
+    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         {/* Group Header */}
-        <Box
-          style={{
-            padding: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: '#e5e7eb',
-          }}
-        >
+        <Box className="p-4 border-b border-neutral-200 dark:border-neutral-700">
           <HStack space="md" alignItems="center">
             <Avatar size="lg">
               <AvatarImage source={{ uri: group.photoURL }} alt={group.name} />
@@ -250,10 +245,8 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
             </Avatar>
 
             <VStack flex={1}>
-              <Text fontSize="lg" fontWeight="semibold" color="black">
-                {group.name}
-              </Text>
-              <Text fontSize="sm" color="gray600">
+              <Text className="text-lg font-semibold">{group.name}</Text>
+              <Text className="text-sm text-neutral-600 dark:text-neutral-300">
                 {group.members.length} member
                 {group.members.length !== 1 ? 's' : ''}
               </Text>
@@ -267,44 +260,27 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
           data={chatMessages}
           keyExtractor={item => item.id}
           renderItem={renderMessage}
-          style={{ flex: 1 }}
+          className="flex-1"
           contentContainerStyle={{ padding: 16 }}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
           }
           ListEmptyComponent={
-            <Box
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: 32,
-              }}
-            >
-              <Text
-                fontSize="lg"
-                color="gray600"
-                style={{ textAlign: 'center' }}
-              >
+            <VStack className="flex-1 justify-center items-center p-8">
+              <Text className="text-lg text-neutral-600 dark:text-neutral-300 text-center">
                 No messages yet
               </Text>
-              <Text
-                fontSize="sm"
-                color="gray500"
-                style={{ textAlign: 'center', marginTop: 8 }}
-              >
+              <Text className="text-sm text-neutral-500 dark:text-neutral-400 text-center mt-2">
                 Start the conversation!
               </Text>
-            </Box>
+            </VStack>
           }
         />
 
         {/* Message Input */}
-        <Box
-          style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb' }}
-        >
+        <Box className="p-4 border-t border-neutral-200 dark:border-neutral-700">
           <HStack space="md" alignItems="center">
-            <Input style={{ flex: 1 }}>
+            <Input className="flex-1">
               <InputField
                 placeholder="Type a message..."
                 value={messageText}
@@ -322,8 +298,8 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
             </Button>
           </HStack>
         </Box>
-      </Box>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 

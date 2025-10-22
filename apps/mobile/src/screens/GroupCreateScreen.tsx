@@ -2,28 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { FlatList, Pressable, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import {
-  Box,
-  Text,
-  Avatar,
-  AvatarImage,
-  AvatarFallbackText,
-  HStack,
-  VStack,
-  Input,
-  InputField,
-  Button,
-  ButtonText,
-  Spinner,
-  Checkbox,
-  CheckboxIndicator,
-} from '@ui/index';
-import { useGroupStore } from '../store/groups';
-import { useAuthStore } from '../store/auth';
-import { db } from '../firebase/firebaseApp';
+
+import { Avatar, AvatarImage, AvatarFallbackText } from '@ui/avatar';
+import { Button, ButtonText } from '@ui/button';
+import { Box } from '@ui/box';
+import { Checkbox, CheckboxIndicator } from '@ui/checkbox';
+import { HStack } from '@ui/hstack';
+import { Input } from '@ui/input';
+import { InputField } from '@ui/input';
+import { Spinner } from '@ui/spinner';
+import { Text } from '@ui/text';
+import { VStack } from '@ui/vstack';
+
+import { useGroupStore } from '@/store/groups';
+import { useAuthStore } from '@/store/auth';
+
+import { db } from '@/firebase/firebaseApp';
 import { User } from '@chatapp/shared';
-import { RootStackParamList } from '../types/navigation';
+import { RootStackParamList } from '@/types/navigation';
 
 type GroupCreateScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -122,12 +120,9 @@ const GroupCreateScreen = () => {
     return (
       <Pressable onPress={() => toggleUserSelection(item.uid)}>
         <Box
-          style={{
-            padding: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: '#e5e7eb',
-            backgroundColor: isSelected ? '#f3f4f6' : 'transparent',
-          }}
+          className={`p-4 border-b border-neutral-200 dark:border-neutral-700 ${
+            isSelected ? 'bg-neutral-100 dark:bg-neutral-800' : 'bg-transparent'
+          }`}
         >
           <HStack space="md" alignItems="center">
             <Checkbox
@@ -149,23 +144,16 @@ const GroupCreateScreen = () => {
             </Avatar>
 
             <VStack flex={1}>
-              <Text fontSize="md" fontWeight="medium" color="black">
+              <Text className="text-base font-medium">
                 {item.displayName || item.email}
               </Text>
-              <Text fontSize="sm" color="gray600">
+              <Text className="text-sm text-neutral-600 dark:text-neutral-300">
                 {item.email}
               </Text>
             </VStack>
 
             {item.online && (
-              <Box
-                style={{
-                  width: 12,
-                  height: 12,
-                  backgroundColor: '#10b981',
-                  borderRadius: 6,
-                }}
-              />
+              <Box className="w-3 h-3 bg-green-500 rounded-full" />
             )}
           </HStack>
         </Box>
@@ -175,22 +163,22 @@ const GroupCreateScreen = () => {
 
   if (loadingUsers) {
     return (
-      <Box style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Spinner size="large" />
-        <Text style={{ marginTop: 16, color: '#6b7280' }}>
-          Loading users...
-        </Text>
-      </Box>
+      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+        <VStack className="flex-1 justify-center items-center">
+          <Spinner size="large" />
+          <Text className="mt-4 text-neutral-600 dark:text-neutral-300">
+            Loading users...
+          </Text>
+        </VStack>
+      </SafeAreaView>
     );
   }
 
   return (
-    <Box style={{ flex: 1, backgroundColor: '#ffffff' }}>
-      <VStack space="md" style={{ padding: 16 }}>
-        <VStack space="sm">
-          <Text fontSize="md" fontWeight="medium" color="black">
-            Group Name
-          </Text>
+    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <VStack className="flex-1 p-4 space-y-4">
+        <VStack className="space-y-2">
+          <Text className="text-base font-medium">Group Name</Text>
           <Input>
             <InputField
               placeholder="Enter group name"
@@ -200,8 +188,8 @@ const GroupCreateScreen = () => {
           </Input>
         </VStack>
 
-        <VStack space="sm">
-          <Text fontSize="md" fontWeight="medium" color="black">
+        <VStack className="space-y-2">
+          <Text className="text-base font-medium">
             Select Members ({selectedUsers.length} selected)
           </Text>
 
@@ -209,7 +197,7 @@ const GroupCreateScreen = () => {
             data={availableUsers}
             keyExtractor={item => item.uid}
             renderItem={renderUserItem}
-            style={{ maxHeight: 300 }}
+            className="max-h-72"
             showsVerticalScrollIndicator={false}
           />
         </VStack>
@@ -219,12 +207,12 @@ const GroupCreateScreen = () => {
           isDisabled={
             creating || !groupName.trim() || selectedUsers.length === 0
           }
-          style={{ marginTop: 16 }}
+          className="mt-4"
         >
           <ButtonText>{creating ? 'Creating...' : 'Create Group'}</ButtonText>
         </Button>
       </VStack>
-    </Box>
+    </SafeAreaView>
   );
 };
 

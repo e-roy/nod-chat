@@ -1,8 +1,7 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  // Load environment variables (Expo handles .env automatically)
-  // Fallback to values from GoogleService-Info.plist for development
+  // Firebase configuration - single source of truth
   const firebaseConfig = {
     apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -12,6 +11,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
     databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL,
   };
+
+  // Validate that all required fields are present (only in development)
+  if (process.env.NODE_ENV !== 'production') {
+    const missingFields = Object.entries(firebaseConfig)
+      .filter(([_, value]) => !value)
+      .map(([key, _]) => key);
+
+    if (missingFields.length > 0) {
+      console.warn(
+        `Missing Firebase environment variables: ${missingFields.join(', ')}`
+      );
+    }
+  }
 
   return {
     ...config,

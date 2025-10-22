@@ -1,47 +1,59 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Button, ButtonText, ButtonSpinner } from '@ui/button';
 import { Input, InputField } from '@ui/input';
-import { useAuthStore } from '../store/auth';
-import { showAlert } from '../utils/alert';
+import { Alert, AlertText } from '@ui/alert';
+import { Text } from '@ui/text';
+import { Box } from '@ui/box';
+import { VStack } from '@ui/vstack';
+
+import { useAuthStore } from '@/store/auth';
 
 const ProfileSetupScreen: React.FC = () => {
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [validationError, setValidationError] = useState('');
 
   const { updateProfile } = useAuthStore();
 
   const handleCompleteProfile = async () => {
     if (!displayName.trim()) {
-      showAlert('Error', 'Please enter your display name');
+      setValidationError('Please enter your display name');
       return;
     }
 
     try {
       setLoading(true);
+      setValidationError('');
       await updateProfile({ displayName: displayName.trim() });
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      showAlert('Error', error.message);
+      setValidationError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Complete Your Profile</Text>
-          <Text style={styles.subtitle}>
+    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <VStack className="flex-1 px-6 pt-4">
+        <VStack className="mb-6 space-y-2">
+          <Text className="text-3xl font-bold">Complete Your Profile</Text>
+          <Text className="text-base text-neutral-600 dark:text-neutral-300">
             Let's set up your profile to get started
           </Text>
-        </View>
+        </VStack>
 
-        <View style={styles.form}>
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>Display Name</Text>
+        <VStack className="flex-1 space-y-6">
+          {validationError && (
+            <Alert action="error" variant="outline">
+              <AlertText>{validationError}</AlertText>
+            </Alert>
+          )}
+
+          <VStack className="space-y-2">
+            <Text className="text-base font-semibold">Display Name</Text>
             <Input>
               <InputField
                 placeholder="Enter your display name"
@@ -50,9 +62,9 @@ const ProfileSetupScreen: React.FC = () => {
                 autoCapitalize="words"
               />
             </Input>
-          </View>
+          </VStack>
 
-          <View style={styles.buttonContainer}>
+          <VStack className="flex-1 justify-end space-y-4">
             <Button onPress={handleCompleteProfile} isDisabled={loading}>
               {loading ? (
                 <ButtonSpinner />
@@ -60,53 +72,11 @@ const ProfileSetupScreen: React.FC = () => {
                 <ButtonText>Complete Profile</ButtonText>
               )}
             </Button>
-          </View>
-        </View>
-      </View>
+          </VStack>
+        </VStack>
+      </VStack>
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-  },
-  header: {
-    marginBottom: 24,
-    gap: 8,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-  },
-  form: {
-    flex: 1,
-    gap: 24,
-  },
-  inputSection: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  buttonContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    gap: 16,
-  },
-});
 
 export default ProfileSetupScreen;

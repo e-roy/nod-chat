@@ -15,9 +15,8 @@ import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 // Check if we're in development mode
 const isDevelopment = __DEV__;
 
-// Try both methods to get Firebase config
-const configFromConstants = Constants.expoConfig?.extra?.firebase;
-const configFromEnv = {
+// Firebase configuration - matches app.config.ts
+const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
@@ -27,15 +26,14 @@ const configFromEnv = {
   databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
-// Use environment variables directly if Constants doesn't work
-const firebaseConfig =
-  configFromConstants && Object.keys(configFromConstants).length > 0
-    ? configFromConstants
-    : configFromEnv;
+// Validate that all required fields are present
+const missingFields = Object.entries(firebaseConfig)
+  .filter(([_, value]) => !value)
+  .map(([key, _]) => key);
 
-if (!firebaseConfig || !firebaseConfig.apiKey) {
+if (missingFields.length > 0) {
   throw new Error(
-    'Firebase configuration not found. Please check your app.config.ts and environment variables.'
+    `Missing required Firebase environment variables: ${missingFields.join(', ')}`
   );
 }
 

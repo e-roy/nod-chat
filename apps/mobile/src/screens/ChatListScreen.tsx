@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, TouchableOpacity, View, Text as RNText } from 'react-native';
+import { FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/navigation';
+import { RootStackParamList } from '@/types/navigation';
 import { Button, ButtonText } from '@ui/button';
 import { Avatar, AvatarFallbackText } from '@ui/avatar';
+import { Text } from '@ui/text';
+import { Box } from '@ui/box';
+import { VStack } from '@ui/vstack';
+import { HStack } from '@ui/hstack';
 // import { Spinner } from '@ui/spinner'; // TODO: Re-enable when typing indicators work
-import { useAuthStore } from '../store/auth';
-import { useChatStore } from '../store/chat';
-import { usePresenceStore } from '../store/presence';
+import { useAuthStore } from '@/store/auth';
+import { useChatStore } from '@/store/chat';
+import { usePresenceStore } from '@/store/presence';
 import { Chat } from '@chatapp/shared';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/firebaseApp';
+import { db } from '@/firebase/firebaseApp';
 // TODO: Re-enable when typing indicators work
 // import { ref, onValue } from 'firebase/database';
 // import { rtdb } from '../firebase/firebaseApp';
@@ -189,9 +193,7 @@ const ChatListScreen: React.FC = () => {
       loadParticipantName();
     }, [chat, user?.uid]);
 
-    return (
-      <RNText style={{ fontSize: 16, fontWeight: '600' }}>{displayName}</RNText>
-    );
+    return <Text className="text-base font-semibold">{displayName}</Text>;
   };
 
   const renderChatItem = ({ item }: { item: Chat }) => {
@@ -228,16 +230,11 @@ const ChatListScreen: React.FC = () => {
 
     return (
       <TouchableOpacity onPress={handleChatPress}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            padding: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: '#f0f0f0',
-          }}
+        <HStack
+          className="px-4 py-4 border-b border-neutral-200 dark:border-neutral-700"
+          alignItems="center"
         >
-          <View style={{ position: 'relative', marginRight: 12 }}>
+          <Box className="relative mr-3">
             <Avatar size="md">
               <AvatarFallbackText>
                 {getParticipantName(item).charAt(0).toUpperCase()}
@@ -245,162 +242,111 @@ const ChatListScreen: React.FC = () => {
             </Avatar>
             {/* Presence Indicator */}
             {isOnline && (
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  width: 12,
-                  height: 12,
-                  borderRadius: 6,
-                  backgroundColor: '#10B981',
-                  borderWidth: 2,
-                  borderColor: '#fff',
-                }}
-              />
+              <Box className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-neutral-50 dark:border-neutral-950" />
             )}
-          </View>
+          </Box>
 
-          <View style={{ flex: 1 }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 4,
-              }}
+          <VStack flex={1}>
+            <HStack
+              className="justify-between items-center mb-1"
+              alignItems="center"
             >
               <ParticipantName chat={item} />
-              <RNText
-                style={{
-                  fontSize: 12,
-                  color: '#666',
-                }}
-              >
+              <Text className="text-xs text-neutral-500 dark:text-neutral-400">
                 {formatTime(lastMessageTime)}
-              </RNText>
-            </View>
+              </Text>
+            </HStack>
 
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-            >
+            <HStack className="items-center gap-1" alignItems="center">
               {/* TODO: Re-enable typing spinner later */}
               {/* {isTyping && <Spinner size="small" />} */}
-              <RNText
-                style={{
-                  fontSize: 14,
-                  color: '#666',
-                  fontStyle: 'normal',
-                }}
+              <Text
+                className="text-sm text-neutral-500 dark:text-neutral-400"
                 numberOfLines={2}
               >
                 {lastMessageText}
-              </RNText>
-            </View>
-          </View>
-        </View>
+              </Text>
+            </HStack>
+          </VStack>
+        </HStack>
       </TouchableOpacity>
     );
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-        <View
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <RNText>Loading chats...</RNText>
-        </View>
+      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+        <VStack className="flex-1 justify-center items-center">
+          <Text className="text-neutral-600 dark:text-neutral-300">
+            Loading chats...
+          </Text>
+        </VStack>
       </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 16,
-          }}
-        >
-          <View style={{ alignItems: 'center', gap: 16 }}>
-            <RNText style={{ color: '#ef4444', textAlign: 'center' }}>
+      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+        <VStack className="flex-1 justify-center items-center p-4">
+          <VStack className="items-center gap-4">
+            <Text className="text-red-500 dark:text-red-400 text-center">
               {error}
-            </RNText>
+            </Text>
             <Button onPress={clearError} variant="outline">
               <ButtonText>Try Again</ButtonText>
             </Button>
-          </View>
-        </View>
+          </VStack>
+        </VStack>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <View style={{ flex: 1 }}>
+    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <VStack className="flex-1">
         {/* Header */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: '#e0e0e0',
-          }}
+        <HStack
+          className="items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-700"
+          alignItems="center"
         >
-          <View>
-            <RNText style={{ fontSize: 24, fontWeight: 'bold' }}>Chats</RNText>
-            <RNText style={{ fontSize: 14, color: '#666' }}>
+          <VStack>
+            <Text className="text-2xl font-bold">Chats</Text>
+            <Text className="text-sm text-neutral-600 dark:text-neutral-300">
               Welcome, {user?.displayName || user?.email || 'User'}!
-            </RNText>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+            </Text>
+          </VStack>
+          <HStack className="gap-2" space="sm">
             <Button onPress={() => navigation.navigate('NewChat')} size="sm">
               <ButtonText>New Chat</ButtonText>
             </Button>
             <Button onPress={handleSignOut} variant="outline" size="sm">
               <ButtonText>Sign Out</ButtonText>
             </Button>
-          </View>
-        </View>
+          </HStack>
+        </HStack>
 
         {/* Chat List */}
         {chats.length === 0 ? (
-          <View
-            style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 16,
-            }}
-          >
-            <View style={{ alignItems: 'center', gap: 16 }}>
-              <RNText
-                style={{ fontSize: 18, color: '#666', textAlign: 'center' }}
-              >
+          <VStack className="flex-1 justify-center items-center p-4">
+            <VStack className="items-center gap-4">
+              <Text className="text-lg text-neutral-600 dark:text-neutral-300 text-center">
                 No chats yet
-              </RNText>
-              <RNText
-                style={{ fontSize: 14, color: '#999', textAlign: 'center' }}
-              >
+              </Text>
+              <Text className="text-sm text-neutral-500 dark:text-neutral-400 text-center">
                 Start a conversation with someone!
-              </RNText>
-            </View>
-          </View>
+              </Text>
+            </VStack>
+          </VStack>
         ) : (
           <FlatList
             data={chats}
             keyExtractor={item => item.id}
             renderItem={renderChatItem}
-            style={{ flex: 1 }}
+            className="flex-1"
           />
         )}
-      </View>
+      </VStack>
     </SafeAreaView>
   );
 };
