@@ -74,9 +74,9 @@ if (isDevelopment) {
         emulatorHost = debuggerHost.split(':')[0];
         console.log(`🔧 Using IP from Expo Constants: ${emulatorHost}`);
       } else {
-        // Fallback to Android emulator default
-        emulatorHost = '10.0.2.2';
-        console.log(`🔧 Using fallback IP: ${emulatorHost}`);
+        // Use your local network IP for better reliability
+        emulatorHost = '10.1.10.90';
+        console.log(`🔧 Using local network IP: ${emulatorHost}`);
       }
     } else {
       console.log(`🔧 Using IP from environment: ${emulatorHost}`);

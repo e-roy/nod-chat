@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FlatList, TouchableOpacity, View, Text as RNText } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -9,6 +9,8 @@ import { Avatar, AvatarFallbackText } from '@ui/avatar';
 import { useAuthStore } from '../store/auth';
 import { useChatStore } from '../store/chat';
 import { Chat } from '@chatapp/shared';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase/firebaseApp';
 
 type ChatListScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -20,13 +22,37 @@ const ChatListScreen: React.FC = () => {
   const { user, signOut } = useAuthStore();
   const { chats, loading, error, initializeTransport, loadChats, clearError } =
     useChatStore();
+  const [userEmails, setUserEmails] = useState<Map<string, string>>(new Map());
+
+  // Function to get user email by user ID
+  const getUserEmail = async (userId: string): Promise<string> => {
+    if (userEmails.has(userId)) {
+      return userEmails.get(userId)!;
+    }
+
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const email = userData.email || userId;
+        setUserEmails(prev => new Map(prev).set(userId, email));
+        return email;
+      }
+    } catch (error) {
+      console.error('Error fetching user email:', error);
+    }
+
+    return userId; // Fallback to user ID if email not found
+  };
 
   useEffect(() => {
     if (user) {
       initializeTransport();
       loadChats();
     }
-  }, [user, initializeTransport, loadChats]);
+  }, [user, initializeTransport]);
 
   const handleSignOut = async () => {
     try {
@@ -54,17 +80,55 @@ const ChatListScreen: React.FC = () => {
     const otherParticipant = chat.participants.find(
       (p: string) => p !== user?.uid
     );
-    return otherParticipant
-      ? `User ${otherParticipant.slice(0, 8)}`
-      : 'Unknown User';
+    return otherParticipant || 'Unknown User';
+  };
+
+  // Component to display participant name with email lookup
+  const ParticipantName: React.FC<{ chat: Chat }> = ({ chat }) => {
+    const [displayName, setDisplayName] = useState<string>('Loading...');
+
+    useEffect(() => {
+      const loadParticipantName = async () => {
+        if (chat.name) {
+          setDisplayName(chat.name);
+          return;
+        }
+
+        const otherParticipant = chat.participants.find(
+          (p: string) => p !== user?.uid
+        );
+
+        if (otherParticipant) {
+          const email = await getUserEmail(otherParticipant);
+          setDisplayName(email);
+        } else {
+          setDisplayName('Unknown User');
+        }
+      };
+
+      loadParticipantName();
+    }, [chat, user?.uid]);
+
+    return (
+      <RNText style={{ fontSize: 16, fontWeight: '600' }}>{displayName}</RNText>
+    );
   };
 
   const renderChatItem = ({ item }: { item: Chat }) => {
-    const participantName = getParticipantName(item);
     const lastMessageText = item.lastMessage?.text || 'No messages yet';
     const lastMessageTime = item.lastMessage?.createdAt || item.updatedAt;
 
-    const handleChatPress = () => {
+    const handleChatPress = async () => {
+      // Get the participant email for navigation
+      const otherParticipant = item.participants.find(
+        (p: string) => p !== user?.uid
+      );
+
+      let participantName = 'Unknown User';
+      if (otherParticipant) {
+        participantName = await getUserEmail(otherParticipant);
+      }
+
       navigation.navigate('Chat', {
         chatId: item.id,
         participantName,
@@ -84,7 +148,7 @@ const ChatListScreen: React.FC = () => {
         >
           <Avatar size="md" style={{ marginRight: 12 }}>
             <AvatarFallbackText>
-              {participantName.charAt(0).toUpperCase()}
+              {getParticipantName(item).charAt(0).toUpperCase()}
             </AvatarFallbackText>
           </Avatar>
 
@@ -97,16 +161,7 @@ const ChatListScreen: React.FC = () => {
                 marginBottom: 4,
               }}
             >
-              <RNText
-                style={{
-                  fontSize: 16,
-                  fontWeight: '600',
-                  flex: 1,
-                }}
-                numberOfLines={1}
-              >
-                {participantName}
-              </RNText>
+              <ParticipantName chat={item} />
               <RNText
                 style={{
                   fontSize: 12,

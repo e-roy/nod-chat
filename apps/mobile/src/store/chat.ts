@@ -14,6 +14,7 @@ interface ChatState {
   transport: FirebaseTransport | null;
   loading: boolean;
   error: string | null;
+  chatListenerActive: boolean;
 }
 
 interface ChatActions {
@@ -34,6 +35,7 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
   transport: null,
   loading: false,
   error: null,
+  chatListenerActive: false,
 
   initializeTransport: () => {
     const transport = new FirebaseTransport();
@@ -45,12 +47,19 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
   },
 
   loadChats: async () => {
-    const { transport } = get();
+    const { transport, chatListenerActive } = get();
     const { user } = useAuthStore.getState();
 
-    if (!transport || !user) return;
+    if (!transport || !user) {
+      return;
+    }
 
-    set({ loading: true, error: null });
+    // Prevent multiple listeners
+    if (chatListenerActive) {
+      return;
+    }
+
+    set({ loading: true, error: null, chatListenerActive: true });
 
     try {
       // Set up real-time listener for chats
@@ -59,7 +68,7 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       });
     } catch (error) {
       console.error('Error loading chats:', error);
-      set({ error: 'Failed to load chats' });
+      set({ error: 'Failed to load chats', chatListenerActive: false });
     } finally {
       set({ loading: false });
     }
@@ -68,7 +77,9 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
   loadMessages: async (chatId: string) => {
     const { transport, messages } = get();
 
-    if (!transport) return;
+    if (!transport) {
+      return;
+    }
 
     try {
       // Load message history
@@ -122,6 +133,21 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
 
       // Send to Firebase
       await transport.send(message);
+
+      // Update the optimistic message status to 'sent'
+      const updatedMessages = new Map(get().messages);
+      const updatedChatMessages = updatedMessages.get(chatId) || [];
+      const messageIndex = updatedChatMessages.findIndex(
+        m => m.id === messageId
+      );
+      if (messageIndex !== -1) {
+        updatedChatMessages[messageIndex] = {
+          ...updatedChatMessages[messageIndex],
+          status: 'sent',
+        };
+        updatedMessages.set(chatId, updatedChatMessages);
+        set({ messages: updatedMessages });
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       set({ error: 'Failed to send message' });
@@ -131,8 +157,6 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
   createChat: async (participantIds: string[]) => {
     const { transport } = get();
     const { user } = useAuthStore.getState();
-
-    console.log('createChat called with:', { participantIds, user: user?.uid });
 
     if (!transport) {
       console.error('Transport not initialized');
@@ -147,10 +171,9 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
     }
 
     try {
-      const allParticipants = [...participantIds, user.uid];
-      console.log('Creating chat with participants:', allParticipants);
-      const chatId = await transport.createChat(allParticipants);
-      console.log('Chat created with ID:', chatId);
+      // Ensure we don't duplicate the current user in participants
+      const uniqueParticipants = [...new Set([...participantIds, user.uid])];
+      const chatId = await transport.createChat(uniqueParticipants);
       return chatId;
     } catch (error) {
       console.error('Error creating chat:', error);
@@ -173,6 +196,7 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       messages: new Map(),
       currentChatId: null,
       transport: null,
+      chatListenerActive: false,
     });
   },
 }));

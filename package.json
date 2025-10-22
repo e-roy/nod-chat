@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "dev": "pnpm --filter @chatapp/mobile dev",
-    "dev:tunnel": "pnpm --filter @chatapp/mobile start --tunnel --port 8082",
+    "dev:tunnel": "pnpm --filter @chatapp/mobile start --port 8082",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "build": "pnpm -r build",

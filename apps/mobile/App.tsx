@@ -10,7 +10,7 @@ import { GluestackUIProvider } from '@ui/gluestack-ui-provider';
 export default function App() {
   return (
     <RootLayout>
-      <GluestackUIProvider mode="dark">
+      <GluestackUIProvider mode="light">
         <AppNavigator />
         <StatusBar style="auto" />
       </GluestackUIProvider>

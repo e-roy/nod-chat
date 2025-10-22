@@ -76,9 +76,22 @@ const NewChatScreen: React.FC = () => {
     clearError(); // Clear any previous errors
 
     try {
-      // For now, we'll create a chat with a placeholder participant ID
-      // In a real app, you'd look up the user by email first
-      const participantId = `user_${participantEmail.replace('@', '_').replace('.', '_')}`;
+      // Look up user by email to get their Firebase user ID
+      const { transport } = useChatStore.getState();
+      if (!transport) {
+        console.error('Transport not initialized');
+        return;
+      }
+
+      const participantId = await transport.findUserByEmail(
+        participantEmail.trim()
+      );
+
+      if (!participantId) {
+        console.error(`No user found with email: ${participantEmail}`);
+        return;
+      }
+
       const chatId = await createChat([participantId]);
 
       if (chatId) {
@@ -89,6 +102,7 @@ const NewChatScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Error creating chat:', error);
+      console.error('Failed to create chat');
     } finally {
       setLoading(false);
     }
@@ -103,17 +117,16 @@ const NewChatScreen: React.FC = () => {
               Start New Chat
             </RNText>
             <RNText style={{ fontSize: 14, color: '#666' }}>
-              Enter the email of the person you want to chat with
+              Enter the email address of the person you want to chat with
             </RNText>
           </View>
 
           <View style={{ gap: 16 }}>
             <Input>
               <InputField
-                placeholder="Enter email address"
+                placeholder="Enter user ID or email"
                 value={participantEmail}
                 onChangeText={setParticipantEmail}
-                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />

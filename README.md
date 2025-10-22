@@ -115,17 +115,17 @@ pnpm run dev
 - Scan QR code with Expo Go app
 - Connects to port 8081
 
-#### Android Emulator (Tunnel Mode)
+#### Android Emulator (Local Network)
 
 ```bash
 pnpm run dev:tunnel
 ```
 
 - Open Expo Go on Android emulator
-- Scan QR code from tunnel server
+- Scan QR code from development server
 - **Or manually enter**: `exp://10.1.10.90:8082` (replace with your computer's IP)
 - Connects to port 8082
-- Uses tunnel mode to bypass version compatibility issues
+- Uses local network for better stability and multiple device support
 
 #### Complete Development Workflow
 
@@ -159,7 +159,7 @@ firebase deploy --only storage
 ```bash
 # Development
 pnpm dev                    # Start Expo development server (iPhone/Expo Go)
-pnpm dev:tunnel             # Start Expo tunnel server (Android emulator)
+pnpm dev:tunnel             # Start Expo server for Android emulator (local network)
 pnpm run emulators          # Start Firebase emulators
 pnpm --filter @chatapp/mobile android  # Run on Android
 pnpm --filter @chatapp/mobile ios      # Run on iOS
@@ -213,11 +213,3 @@ pnpm --filter @chatapp/mobile build    # Build for production
 - **Rule of 350:** Keep app source files **≤ 350 LOC** when reasonable
 - **TypeScript strict** mode enabled
 - **Absolute imports** via `tsconfig` paths (`@/ui/...`, `@/features/chat/...`, etc.)
-
-## Next Steps (Phase 2)
-
-- Implement messaging transport interface
-- Create Firebase messaging transport
-- Build chat list and chat screen
-- Add message composition and display
-- Implement real-time messaging
