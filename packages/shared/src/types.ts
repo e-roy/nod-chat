@@ -16,6 +16,7 @@ export interface ChatMessage {
   imageUrl?: string | null;
   createdAt: number; // ms epoch
   status?: "sending" | "sent" | "delivered" | "read";
+  readBy?: string[]; // array of user IDs who have read this message (for groups)
 }
 
 export interface Chat {
@@ -27,9 +28,19 @@ export interface Chat {
   updatedAt: number;
 }
 
+export interface Group {
+  id: string;
+  name: string;
+  photoURL?: string;
+  members: string[]; // user IDs
+  admins: string[]; // user IDs who can add/remove members
+  lastMessage?: ChatMessage;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface AuthState {
   user: User | null;
   loading: boolean;
   error: string | null;
 }
-

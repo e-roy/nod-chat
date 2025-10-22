@@ -187,10 +187,14 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
     const { transport } = get();
     const { user } = useAuthStore.getState();
 
-    if (!transport || !user) return;
+    if (!transport || !user) {
+      return;
+    }
 
     try {
       const messageId = generateMessageId();
+      const isGroupMessage = chatId.startsWith('group_');
+
       const message: ChatMessage = {
         id: messageId,
         chatId,
@@ -198,6 +202,8 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
         text,
         createdAt: Date.now(),
         status: 'sending',
+        // For group messages, initialize readBy with sender
+        readBy: isGroupMessage ? [user.uid] : undefined,
       };
 
       // Optimistically add message to local state
@@ -209,21 +215,7 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
 
       // Send to Firebase
       await transport.send(message);
-
-      // Update the optimistic message status to 'sent'
-      const updatedMessages = new Map(get().messages);
-      const updatedChatMessages = updatedMessages.get(chatId) || [];
-      const messageIndex = updatedChatMessages.findIndex(
-        m => m.id === messageId
-      );
-      if (messageIndex !== -1) {
-        updatedChatMessages[messageIndex] = {
-          ...updatedChatMessages[messageIndex],
-          status: 'sent',
-        };
-        updatedMessages.set(chatId, updatedChatMessages);
-        set({ messages: updatedMessages });
-      }
+      // Note: Status will be updated via the real-time listener
     } catch (error) {
       console.error('Error sending message:', error);
       set({ error: 'Failed to send message' });
@@ -305,10 +297,19 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
     const { transport } = get();
     const { user } = useAuthStore.getState();
 
-    if (!transport || !user) return;
+    if (!transport || !user) {
+      return;
+    }
 
     try {
-      await transport.markMessagesAsRead(chatId, user.uid);
+      const isGroupMessage = chatId.startsWith('group_');
+      if (isGroupMessage) {
+        // For groups, handle read status directly in the transport
+        await transport.updateGroupReadStatus(chatId, user.uid);
+      } else {
+        // For regular chats, use the existing method
+        await transport.markMessagesAsRead(chatId, user.uid);
+      }
     } catch (error) {
       console.error('Error marking messages as read:', error);
       set({ error: 'Failed to mark messages as read' });

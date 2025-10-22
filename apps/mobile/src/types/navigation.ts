@@ -9,10 +9,15 @@ export type RootStackParamList = {
   };
   NewChat: undefined;
   ProfileSetup: undefined;
+  GroupChat: {
+    groupId: string;
+  };
+  GroupCreate: undefined;
 };
 
 export type MainTabParamList = {
   Chats: undefined;
+  Groups: undefined;
   Settings: undefined;
 };
 

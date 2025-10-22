@@ -19,11 +19,15 @@ import { db } from '../firebase/firebaseApp';
 import {
   MessagingTransport,
   ChatTransport,
+  GroupTransport,
   ChatMessage,
   Chat,
+  Group,
 } from '@chatapp/shared';
 
-export class FirebaseTransport implements MessagingTransport, ChatTransport {
+export class FirebaseTransport
+  implements MessagingTransport, ChatTransport, GroupTransport
+{
   private unsubscribeCallbacks: Map<string, () => void> = new Map();
 
   async connect(uid: string): Promise<void> {
@@ -32,15 +36,34 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
 
   async send(msg: ChatMessage): Promise<void> {
     try {
-      // Use the client-generated message ID instead of letting Firestore generate one
-      const messageRef = doc(db, 'chats', msg.chatId, 'messages', msg.id);
-      await setDoc(messageRef, {
-        ...msg,
-        createdAt: serverTimestamp(),
-      });
+      // Determine if this is a group message or regular chat
+      const isGroupMessage = msg.chatId.startsWith('group_');
+      const collectionName = isGroupMessage ? 'groups' : 'chats';
 
-      // Update chat's lastMessage and updatedAt
-      const chatRef = doc(db, 'chats', msg.chatId);
+      // Use the client-generated message ID instead of letting Firestore generate one
+      const messageRef = doc(
+        db,
+        collectionName,
+        msg.chatId,
+        'messages',
+        msg.id
+      );
+
+      // For group messages, initialize readBy with sender
+      const messageData: any = {
+        ...msg,
+        status: 'sent', // Set status to 'sent' when writing to Firestore
+        createdAt: serverTimestamp(),
+      };
+
+      if (isGroupMessage && msg.readBy) {
+        messageData.readBy = msg.readBy;
+      }
+
+      await setDoc(messageRef, messageData);
+
+      // Update chat/group's lastMessage and updatedAt
+      const chatRef = doc(db, collectionName, msg.chatId);
       await updateDoc(chatRef, {
         lastMessage: {
           id: msg.id,
@@ -57,7 +80,11 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
   }
 
   onMessage(chatId: string, cb: (m: ChatMessage) => void): () => void {
-    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    // Determine if this is a group message or regular chat
+    const isGroupMessage = chatId.startsWith('group_');
+    const collectionName = isGroupMessage ? 'groups' : 'chats';
+
+    const messagesRef = collection(db, collectionName, chatId, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
     const unsubscribe = onSnapshot(q, snapshot => {
@@ -73,6 +100,7 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
             imageUrl: data.imageUrl,
             createdAt: data.createdAt?.toMillis?.() || Date.now(),
             status: data.status || 'sent',
+            readBy: data.readBy || [],
           };
           cb(message);
         }
@@ -88,7 +116,11 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
     limitCount: number = 50
   ): Promise<ChatMessage[]> {
     try {
-      const messagesRef = collection(db, 'chats', chatId, 'messages');
+      // Determine if this is a group message or regular chat
+      const isGroupMessage = chatId.startsWith('group_');
+      const collectionName = isGroupMessage ? 'groups' : 'chats';
+
+      const messagesRef = collection(db, collectionName, chatId, 'messages');
       const q = query(
         messagesRef,
         orderBy('createdAt', 'desc'),
@@ -108,6 +140,7 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
           imageUrl: data.imageUrl,
           createdAt: data.createdAt?.toMillis?.() || Date.now(),
           status: data.status || 'sent',
+          readBy: data.readBy || [],
         });
       });
 
@@ -374,7 +407,11 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
     readAt?: number
   ): Promise<void> {
     try {
-      const messageRef = doc(db, 'chats', chatId, 'messages', messageId);
+      // Determine if this is a group message or regular chat
+      const isGroupMessage = chatId.startsWith('group_');
+      const collectionName = isGroupMessage ? 'groups' : 'chats';
+
+      const messageRef = doc(db, collectionName, chatId, 'messages', messageId);
       const updateData: any = { status };
 
       if (status === 'read' && readAt) {
@@ -384,6 +421,262 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
       await updateDoc(messageRef, updateData);
     } catch (error) {
       console.error('Error updating message status:', error);
+      throw error;
+    }
+  }
+
+  // Group Transport Methods
+  async createGroup(
+    name: string,
+    members: string[],
+    creatorId: string
+  ): Promise<string> {
+    try {
+      const groupId = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const groupRef = doc(db, 'groups', groupId);
+      const groupData = {
+        id: groupId,
+        name,
+        members,
+        admins: [creatorId], // Creator is the first admin
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      await setDoc(groupRef, groupData);
+      return groupId;
+    } catch (error) {
+      console.error('Error creating group:', error);
+      throw error;
+    }
+  }
+
+  async getGroups(uid: string): Promise<Group[]> {
+    try {
+      const groupsRef = collection(db, 'groups');
+      const q = query(groupsRef, where('members', 'array-contains', uid));
+
+      const snapshot = await getDocs(q);
+      const groups: Group[] = [];
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.members && data.members.includes(uid)) {
+          groups.push({
+            id: doc.id,
+            name: data.name,
+            photoURL: data.photoURL,
+            members: data.members,
+            admins: data.admins,
+            lastMessage: data.lastMessage
+              ? {
+                  id: data.lastMessage.id,
+                  chatId: doc.id,
+                  senderId: data.lastMessage.senderId,
+                  text: data.lastMessage.text,
+                  imageUrl: data.lastMessage.imageUrl,
+                  createdAt:
+                    data.lastMessage.createdAt?.toMillis?.() || Date.now(),
+                  status: data.lastMessage.status || 'sent',
+                  readBy: data.lastMessage.readBy || [],
+                }
+              : undefined,
+            createdAt: data.createdAt?.toMillis?.() || Date.now(),
+            updatedAt: data.updatedAt?.toMillis?.() || Date.now(),
+          });
+        }
+      });
+
+      groups.sort((a, b) => b.updatedAt - a.updatedAt);
+      return groups;
+    } catch (error) {
+      console.error('Error getting groups:', error);
+      throw error;
+    }
+  }
+
+  onGroupUpdate(uid: string, cb: (groups: Group[]) => void): () => void {
+    const groupsRef = collection(db, 'groups');
+    const q = query(groupsRef, where('members', 'array-contains', uid));
+
+    const unsubscribe = onSnapshot(q, snapshot => {
+      const userGroups: Group[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.members && data.members.includes(uid)) {
+          userGroups.push({
+            id: doc.id,
+            name: data.name,
+            photoURL: data.photoURL,
+            members: data.members,
+            admins: data.admins,
+            lastMessage: data.lastMessage
+              ? {
+                  id: data.lastMessage.id,
+                  chatId: doc.id,
+                  senderId: data.lastMessage.senderId,
+                  text: data.lastMessage.text,
+                  imageUrl: data.lastMessage.imageUrl,
+                  createdAt:
+                    data.lastMessage.createdAt?.toMillis?.() || Date.now(),
+                  status: data.lastMessage.status || 'sent',
+                  readBy: data.lastMessage.readBy || [],
+                }
+              : undefined,
+            createdAt: data.createdAt?.toMillis?.() || Date.now(),
+            updatedAt: data.updatedAt?.toMillis?.() || Date.now(),
+          });
+        }
+      });
+
+      userGroups.sort((a, b) => b.updatedAt - a.updatedAt);
+      cb(userGroups);
+    });
+
+    this.unsubscribeCallbacks.set(`groups_${uid}`, unsubscribe);
+    return unsubscribe;
+  }
+
+  async addGroupMember(
+    groupId: string,
+    userId: string,
+    adminId: string
+  ): Promise<void> {
+    try {
+      const groupRef = doc(db, 'groups', groupId);
+      const groupDoc = await getDoc(groupRef);
+
+      if (!groupDoc.exists()) {
+        throw new Error('Group not found');
+      }
+
+      const groupData = groupDoc.data();
+      if (!groupData.admins.includes(adminId)) {
+        throw new Error('Only admins can add members');
+      }
+
+      if (groupData.members.includes(userId)) {
+        return; // User is already a member
+      }
+
+      await updateDoc(groupRef, {
+        members: [...groupData.members, userId],
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Error adding group member:', error);
+      throw error;
+    }
+  }
+
+  async removeGroupMember(
+    groupId: string,
+    userId: string,
+    adminId: string
+  ): Promise<void> {
+    try {
+      const groupRef = doc(db, 'groups', groupId);
+      const groupDoc = await getDoc(groupRef);
+
+      if (!groupDoc.exists()) {
+        throw new Error('Group not found');
+      }
+
+      const groupData = groupDoc.data();
+      if (!groupData.admins.includes(adminId)) {
+        throw new Error('Only admins can remove members');
+      }
+
+      if (!groupData.members.includes(userId)) {
+        return; // User is not a member
+      }
+
+      const updatedMembers = groupData.members.filter(
+        (id: string) => id !== userId
+      );
+      const updatedAdmins = groupData.admins.filter(
+        (id: string) => id !== userId
+      );
+
+      await updateDoc(groupRef, {
+        members: updatedMembers,
+        admins: updatedAdmins,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Error removing group member:', error);
+      throw error;
+    }
+  }
+
+  async leaveGroup(groupId: string, userId: string): Promise<void> {
+    try {
+      const groupRef = doc(db, 'groups', groupId);
+      const groupDoc = await getDoc(groupRef);
+
+      if (!groupDoc.exists()) {
+        throw new Error('Group not found');
+      }
+
+      const groupData = groupDoc.data();
+      if (!groupData.members.includes(userId)) {
+        return; // User is not a member
+      }
+
+      const updatedMembers = groupData.members.filter(
+        (id: string) => id !== userId
+      );
+      const updatedAdmins = groupData.admins.filter(
+        (id: string) => id !== userId
+      );
+
+      await updateDoc(groupRef, {
+        members: updatedMembers,
+        admins: updatedAdmins,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Error leaving group:', error);
+      throw error;
+    }
+  }
+
+  async updateGroupReadStatus(groupId: string, userId: string): Promise<void> {
+    try {
+      const messagesRef = collection(db, 'groups', groupId, 'messages');
+      const q = query(messagesRef, orderBy('createdAt', 'desc'), limit(50));
+
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        return;
+      }
+
+      // Filter messages client-side: from other users and not already read by this user
+      const messagesToUpdate = snapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.senderId !== userId && !data.readBy?.includes(userId);
+      });
+
+      if (messagesToUpdate.length === 0) {
+        return;
+      }
+
+      // Use batch write for efficiency
+      const batch = writeBatch(db);
+
+      messagesToUpdate.forEach(doc => {
+        const messageRef = doc.ref;
+        const currentReadBy = doc.data().readBy || [];
+        batch.update(messageRef, {
+          readBy: [...currentReadBy, userId],
+        });
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Error updating group read status:', error);
       throw error;
     }
   }

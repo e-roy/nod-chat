@@ -10,6 +10,9 @@ import ChatScreen from '../screens/ChatScreen';
 import NewChatScreen from '../screens/NewChatScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ProfileSetupScreen from '../screens/ProfileSetupScreen';
+import GroupListScreen from '../screens/GroupListScreen';
+import GroupChatScreen from '../screens/GroupChatScreen';
+import GroupCreateScreen from '../screens/GroupCreateScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -21,6 +24,11 @@ const MainTabs = () => {
         name="Chats"
         component={ChatListScreen}
         options={{ title: 'Chats' }}
+      />
+      <Tab.Screen
+        name="Groups"
+        component={GroupListScreen}
+        options={{ title: 'Groups' }}
       />
       <Tab.Screen
         name="Settings"
@@ -68,6 +76,23 @@ const AppNavigator = () => {
                 component={ProfileSetupScreen}
                 options={{
                   title: 'Complete Profile',
+                  headerShown: true,
+                  presentation: 'modal',
+                }}
+              />
+              <Stack.Screen
+                name="GroupChat"
+                component={GroupChatScreen as any}
+                options={{
+                  title: 'Group Chat',
+                  headerShown: true,
+                }}
+              />
+              <Stack.Screen
+                name="GroupCreate"
+                component={GroupCreateScreen}
+                options={{
+                  title: 'Create Group',
                   headerShown: true,
                   presentation: 'modal',
                 }}
