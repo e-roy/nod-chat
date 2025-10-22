@@ -1,74 +1,60 @@
 flowchart TD
-%% ===== Client Side (Expo) =====
-subgraph C["Client — Expo (React Native)"]
-A["UI<br/>(gluestack-ui, Navigation)"] --> S["Stores (Zustand)"]
-S --> T["MessagingTransport<br/>(firebaseTransport)"]
-A --> M["Media Picker<br/>(Expo ImagePicker)"]
-S --> N["Notifications Handler<br/>(Expo Notifications)"]
-S --> P["Presence Client<br/>(RTDB onDisconnect)"]
-S --> L["Local Cache<br/>(AsyncStorage / Firestore Offline)"]
-end
+%% ==== client nodes ====
+C_UI["UI"]
+C_STORE["Stores"]
+C_TX["Transport Firebase"]
+C_MEDIA["Media Picker"]
+C_NOTIF["Notifications"]
+C_PRES["Presence Client"]
+C_LOCAL["Local Cache"]
 
-    %% ===== Firebase Services =====
-    subgraph F["Firebase Project"]
-      subgraph AUTH["Auth"]
-        FA["Email/Password"]
-      end
+%% ==== firebase nodes ====
+AUTH["Auth"]
+FS_USERS["Firestore users"]
+FS_CHATS["Firestore chats"]
+FS_MSGS["Firestore messages"]
+FS_TYPING["Firestore typing"]
+ST_MEDIA["Storage media"]
+RT_STATUS["RTDB status"]
+CF_PRES["Cloud Fn presence mirror"]
+CF_NOTIFY["Cloud Fn notify"]
+FCM["FCM"]
 
-      subgraph FS["Firestore"]
-        FChats["chats/{chatId}<br/>lastMessage, updatedAt"]
-        FMsgs["chats/{chatId}/messages/{messageId}"]
-        FGroups["groups/{groupId}<br/>+ messages/"]
-        FUsers["users/{uid}<br/>profile, tokens"]
-        FTyping["typing/{chatId}/{uid}"]
-      end
+%% ==== client wiring ====
+C_UI --> C_STORE
+C_STORE --> C_TX
+C_UI --> C_MEDIA
+C_STORE --> C_NOTIF
+C_STORE --> C_PRES
+C_STORE --> C_LOCAL
 
-      subgraph ST["Storage"]
-        FMedia["chatMedia/<br/>images & metadata"]
-      end
+%% ==== auth ====
+C_UI -- "sign in" --> AUTH
+AUTH -- "auth state" --> C_STORE
 
-      subgraph RT["Realtime Database"]
-        FRtdb["/status/{uid}<br/>{online|offline, lastChanged}"]
-      end
+%% ==== messaging ====
+C_TX -- "write message" --> FS_MSGS
+FS_MSGS -- "snapshot" --> C_TX
+C_TX -- "update lastMessage" --> FS_CHATS
 
-      subgraph CF["Cloud Functions"]
-        CPresence["Presence Mirror<br/>(RTDB → Firestore users)"]
-        CNotify["Push Fanout<br/>(on new message)"]
-        CGuards["Security/Validation<br/>helpers"]
-      end
+%% ==== presence and typing ====
+C_PRES -- "set online" --> RT_STATUS
+RT_STATUS -- "mirror" --> CF_PRES
+CF_PRES -- "update users" --> FS_USERS
+C_UI -- "typing" --> FS_TYPING
 
-      subgraph FCM["Push"]
-        FP["Firebase Cloud Messaging"]
-      end
-    end
+%% ==== media ====
+C_MEDIA -- "upload" --> ST_MEDIA
+C_TX -- "attach imageUrl" --> FS_MSGS
 
-    %% ===== Edges: Auth / Session =====
-    A -->|Sign up / Sign in| FA
-    FA -->|onAuthStateChanged| S
+%% ==== notifications ====
+FS_MSGS -. "trigger" .-> CF_NOTIFY
+CF_NOTIFY -- "send" --> FCM
+FCM -- "deliver" --> C_NOTIF
 
-    %% ===== Edges: Messaging =====
-    T -->|write message<br/>(optimistic 'sending')| FMsgs
-    FMsgs -->|snapshots| T
-    T -->|update lastMessage| FChats
-    L <--> FS
-
-    %% ===== Edges: Presence & Typing =====
-    P -->|set online,<br/>onDisconnect offline| FRtdb
-    FRtdb -->|mirror| CPresence --> FUsers
-    A -->|typing on/off| FTyping
-
-    %% ===== Edges: Media =====
-    M -->|upload| FMedia
-    T -->|attach imageUrl| FMsgs
-
-    %% ===== Edges: Notifications =====
-    CF -. triggers on new message .-> CNotify
-    CNotify -->|send| FP
-    FP -->|deliver<br/>(notification)| N
-
-    %% ===== Reads for UI =====
-    S -->|chat list| FChats
-    S -->|chat history| FMsgs
-    S -->|profile & tokens| FUsers
-    S -->|presence| FUsers
-    S -->|typing| FTyping
+%% ==== reads for UI ====
+C_STORE -- "chat list" --> FS_CHATS
+C_STORE -- "chat history" --> FS_MSGS
+C_STORE -- "profiles" --> FS_USERS
+C_STORE -- "presence" --> FS_USERS
+C_STORE -- "typing" --> FS_TYPING
