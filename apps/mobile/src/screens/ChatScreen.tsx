@@ -13,8 +13,10 @@ import { RootStackParamList } from '../types/navigation';
 import { Button, ButtonText } from '@ui/button';
 import { Input, InputField } from '@ui/input';
 import { Avatar, AvatarFallbackText } from '@ui/avatar';
+// import { Spinner } from '@ui/spinner'; // TODO: Re-enable when typing indicators work
 import { useChatStore } from '../store/chat';
 import { useAuthStore } from '../store/auth';
+import { usePresenceStore } from '../store/presence';
 import { ChatMessage } from '@chatapp/shared';
 
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
@@ -23,8 +25,18 @@ const ChatScreen: React.FC = () => {
   const route = useRoute<ChatScreenRouteProp>();
   const { chatId, participantName } = route.params;
   const { user } = useAuthStore();
-  const { messages, sendMessage, loadMessages, currentChatId, setCurrentChat } =
-    useChatStore();
+  const {
+    messages,
+    sendMessage,
+    loadMessages,
+    currentChatId,
+    setCurrentChat,
+    // TODO: Re-enable when typing indicators work
+    // typingUsers,
+    // startTyping,
+    // stopTyping,
+  } = useChatStore();
+  const { userPresence } = usePresenceStore();
 
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
@@ -34,7 +46,17 @@ const ChatScreen: React.FC = () => {
   useEffect(() => {
     setCurrentChat(chatId);
     loadMessages(chatId);
-  }, [chatId, setCurrentChat, loadMessages]);
+
+    // Mark existing messages as read immediately since user is viewing the chat
+    const initialReadTimeout = setTimeout(() => {
+      const { markMessagesAsRead } = useChatStore.getState();
+      markMessagesAsRead(chatId);
+    }, 500); // Small delay to ensure messages are loaded
+
+    return () => {
+      clearTimeout(initialReadTimeout);
+    };
+  }, [chatId]);
 
   useEffect(() => {
     // Scroll to bottom when new messages arrive
@@ -50,11 +72,37 @@ const ChatScreen: React.FC = () => {
 
     const text = messageText.trim();
     setMessageText('');
+    // stopTyping(); // TODO: Re-enable when typing indicators work
 
     try {
       await sendMessage(chatId, text);
     } catch (error) {
       console.error('Error sending message:', error);
+    }
+  };
+
+  const handleTextChange = (text: string) => {
+    setMessageText(text);
+    // TODO: Re-enable typing indicators later
+    // if (text.trim()) {
+    //   startTyping();
+    // } else {
+    //   stopTyping();
+    // }
+  };
+
+  const getMessageStatusIcon = (status: string) => {
+    switch (status) {
+      case 'sending':
+        return '⏳';
+      case 'sent':
+        return '✓';
+      case 'delivered':
+        return '✓✓';
+      case 'read':
+        return '✓✓';
+      default:
+        return '';
     }
   };
 
@@ -95,18 +143,37 @@ const ChatScreen: React.FC = () => {
               {item.text}
             </RNText>
           </View>
-          <RNText
+          <View
             style={{
-              fontSize: 12,
-              color: '#666',
+              flexDirection: 'row',
+              alignItems: 'center',
               marginTop: 4,
+              gap: 4,
             }}
           >
-            {new Date(item.createdAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </RNText>
+            <RNText
+              style={{
+                fontSize: 12,
+                color: '#666',
+              }}
+            >
+              {new Date(item.createdAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </RNText>
+            {isOwnMessage && (
+              <RNText
+                style={{
+                  fontSize: 12,
+                  color: item.status === 'read' ? '#007AFF' : '#666',
+                  fontWeight: item.status === 'read' ? 'bold' : 'normal',
+                }}
+              >
+                {getMessageStatusIcon(item.status || 'sent')}
+              </RNText>
+            )}
+          </View>
         </View>
       </View>
     );
@@ -130,16 +197,77 @@ const ChatScreen: React.FC = () => {
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Avatar size="sm">
-              <AvatarFallbackText>
-                {participantName?.charAt(0) || 'U'}
-              </AvatarFallbackText>
-            </Avatar>
+            <View style={{ position: 'relative' }}>
+              <Avatar size="sm">
+                <AvatarFallbackText>
+                  {participantName?.charAt(0) || 'U'}
+                </AvatarFallbackText>
+              </Avatar>
+              {/* Presence Indicator */}
+              {(() => {
+                const otherParticipant = chatMessages.find(
+                  m => m.senderId !== user?.uid
+                )?.senderId;
+                const isOnline = otherParticipant
+                  ? userPresence.get(otherParticipant)?.online
+                  : false;
+                return (
+                  isOnline && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        right: 0,
+                        width: 10,
+                        height: 10,
+                        borderRadius: 5,
+                        backgroundColor: '#10B981',
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                      }}
+                    />
+                  )
+                );
+              })()}
+            </View>
             <View>
               <RNText style={{ fontSize: 18, fontWeight: '600' }}>
                 {participantName || 'Unknown User'}
               </RNText>
-              <RNText style={{ fontSize: 14, color: '#666' }}>Online</RNText>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              >
+                {(() => {
+                  // TODO: Re-enable typing indicators later
+                  // const typingUsersInChat = typingUsers.get(chatId) || [];
+                  const otherParticipant = chatMessages.find(
+                    m => m.senderId !== user?.uid
+                  )?.senderId;
+                  // const isTyping =
+                  //   otherParticipant &&
+                  //   typingUsersInChat.includes(otherParticipant);
+
+                  // if (isTyping) {
+                  //   return (
+                  //     <>
+                  //       <Spinner size="small" />
+                  //       <RNText style={{ fontSize: 14, color: '#666' }}>
+                  //         typing...
+                  //       </RNText>
+                  //     </>
+                  //   );
+                  // }
+
+                  const isOnline = otherParticipant
+                    ? userPresence.get(otherParticipant)?.online
+                    : false;
+                  return (
+                    <RNText style={{ fontSize: 14, color: '#666' }}>
+                      {isOnline ? 'Online' : 'Offline'}
+                    </RNText>
+                  );
+                })()}
+              </View>
             </View>
           </View>
         </View>
@@ -172,7 +300,7 @@ const ChatScreen: React.FC = () => {
             <InputField
               placeholder="Type a message..."
               value={messageText}
-              onChangeText={setMessageText}
+              onChangeText={handleTextChange}
               multiline
               maxLength={1000}
             />

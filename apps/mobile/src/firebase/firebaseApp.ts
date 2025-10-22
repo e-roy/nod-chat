@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
 import Constants from 'expo-constants';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -23,6 +24,7 @@ const configFromEnv = {
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
 // Use environment variables directly if Constants doesn't work
@@ -40,12 +42,6 @@ if (!firebaseConfig || !firebaseConfig.apiKey) {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-console.log('🔧 Firebase config:', {
-  projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain,
-  isDevelopment,
-});
-
 // Add a flag to track emulator connection status
 let emulatorsConnected = false;
 
@@ -56,11 +52,10 @@ const auth = initializeAuth(app, {
 
 const db = getFirestore(app);
 const storage = getStorage(app);
+const rtdb = getDatabase(app);
 
 // For development mode, we need to connect to emulators BEFORE any operations
 if (isDevelopment) {
-  console.log('🔧 Development mode detected, connecting to emulators...');
-
   try {
     // For Expo Go, we need to use the development machine's IP address
     // Try to get the IP from Expo Constants first, then fallback to environment variable or default
@@ -72,59 +67,50 @@ if (isDevelopment) {
         Constants.expoConfig?.hostUri || Constants.expoGoConfig?.debuggerHost;
       if (debuggerHost) {
         emulatorHost = debuggerHost.split(':')[0];
-        console.log(`🔧 Using IP from Expo Constants: ${emulatorHost}`);
       } else {
         // Use your local network IP for better reliability
         emulatorHost = '10.1.10.90';
-        console.log(`🔧 Using local network IP: ${emulatorHost}`);
       }
-    } else {
-      console.log(`🔧 Using IP from environment: ${emulatorHost}`);
     }
 
     const authEmulatorUrl = `http://${emulatorHost}:9099`;
     const firestoreHost = emulatorHost;
     const firestorePort = 8080;
-
-    console.log(`🔧 Connecting to emulators at ${emulatorHost}...`);
+    const databaseHost = emulatorHost;
+    const databasePort = 9000;
 
     // Connect Auth emulator
     if (!auth.emulatorConfig) {
       connectAuthEmulator(auth, authEmulatorUrl);
     }
-    console.log('✅ Auth emulator connected');
 
     // Connect Firestore emulator - this is critical to prevent cloud calls
     try {
       connectFirestoreEmulator(db, firestoreHost, firestorePort);
-      console.log('✅ Firestore emulator connected');
     } catch (emulatorError: any) {
-      if (emulatorError.message?.includes('already been called')) {
-        console.log('✅ Firestore emulator already connected');
-      } else {
-        console.log(
-          '⚠️ Firestore emulator connection failed:',
-          emulatorError.message
-        );
+      if (!emulatorError.message?.includes('already been called')) {
+        throw emulatorError;
+      }
+    }
+
+    // Connect Realtime Database emulator
+    try {
+      connectDatabaseEmulator(rtdb, databaseHost, databasePort);
+    } catch (emulatorError: any) {
+      if (!emulatorError.message?.includes('already been called')) {
         throw emulatorError;
       }
     }
 
     emulatorsConnected = true;
-    console.log('🔥 All Firebase emulators connected successfully');
   } catch (error) {
-    console.log('⚠️ Could not connect to Firebase emulators:', error);
-    console.log('Make sure emulators are running with: pnpm emulators');
-    console.log(
-      "For Expo Go, you may need to set EXPO_PUBLIC_EMULATOR_HOST to your machine's IP address"
-    );
+    console.error('Could not connect to Firebase emulators:', error);
+    console.error('Make sure emulators are running with: pnpm emulators');
   }
-} else {
-  console.log('🌐 Production mode - using Firebase cloud services');
 }
 
 // Export emulator status for debugging
 export const isEmulatorConnected = () => emulatorsConnected;
 
-export { auth, db, storage };
+export { auth, db, storage, rtdb };
 export default app;

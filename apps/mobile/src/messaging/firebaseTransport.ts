@@ -13,6 +13,7 @@ import {
   getDocs,
   getDoc,
   Timestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase/firebaseApp';
 import {
@@ -61,6 +62,7 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
 
     const unsubscribe = onSnapshot(q, snapshot => {
       snapshot.docChanges().forEach(change => {
+        // Listen for both new messages and status updates
         if (change.type === 'added' || change.type === 'modified') {
           const data = change.doc.data();
           const message: ChatMessage = {
@@ -149,37 +151,36 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
   async getChats(uid: string): Promise<Chat[]> {
     try {
       const chatsRef = collection(db, 'chats');
-      // Temporary: Remove orderBy to avoid index requirement while building
-      const q = query(
-        chatsRef,
-        where('participants', 'array-contains', uid)
-        // orderBy('updatedAt', 'desc') // Temporarily disabled
-      );
+      // Query only chats where this user is a participant
+      const q = query(chatsRef, where('participants', 'array-contains', uid));
 
       const snapshot = await getDocs(q);
       const chats: Chat[] = [];
 
       snapshot.forEach(doc => {
         const data = doc.data();
-        chats.push({
-          id: doc.id,
-          name: data.name,
-          participants: data.participants,
-          lastMessage: data.lastMessage
-            ? {
-                id: data.lastMessage.id,
-                chatId: doc.id,
-                senderId: data.lastMessage.senderId,
-                text: data.lastMessage.text,
-                imageUrl: data.lastMessage.imageUrl,
-                createdAt:
-                  data.lastMessage.createdAt?.toMillis?.() || Date.now(),
-                status: data.lastMessage.status || 'sent',
-              }
-            : undefined,
-          createdAt: data.createdAt?.toMillis?.() || Date.now(),
-          updatedAt: data.updatedAt?.toMillis?.() || Date.now(),
-        });
+        // Double-check participant filtering (defense in depth)
+        if (data.participants && data.participants.includes(uid)) {
+          chats.push({
+            id: doc.id,
+            name: data.name,
+            participants: data.participants,
+            lastMessage: data.lastMessage
+              ? {
+                  id: data.lastMessage.id,
+                  chatId: doc.id,
+                  senderId: data.lastMessage.senderId,
+                  text: data.lastMessage.text,
+                  imageUrl: data.lastMessage.imageUrl,
+                  createdAt:
+                    data.lastMessage.createdAt?.toMillis?.() || Date.now(),
+                  status: data.lastMessage.status || 'sent',
+                }
+              : undefined,
+            createdAt: data.createdAt?.toMillis?.() || Date.now(),
+            updatedAt: data.updatedAt?.toMillis?.() || Date.now(),
+          });
+        }
       });
 
       // Sort chats by updatedAt on the client side
@@ -193,37 +194,36 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
 
   onChatUpdate(uid: string, cb: (chats: Chat[]) => void): () => void {
     const chatsRef = collection(db, 'chats');
-    const q = query(chatsRef);
+    // Query only chats where this user is a participant
+    const q = query(chatsRef, where('participants', 'array-contains', uid));
 
     const unsubscribe = onSnapshot(q, snapshot => {
-      const allChats: Chat[] = [];
+      const userChats: Chat[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
-        allChats.push({
-          id: doc.id,
-          name: data.name,
-          participants: data.participants,
-          lastMessage: data.lastMessage
-            ? {
-                id: data.lastMessage.id,
-                chatId: doc.id,
-                senderId: data.lastMessage.senderId,
-                text: data.lastMessage.text,
-                imageUrl: data.lastMessage.imageUrl,
-                createdAt:
-                  data.lastMessage.createdAt?.toMillis?.() || Date.now(),
-                status: data.lastMessage.status || 'sent',
-              }
-            : undefined,
-          createdAt: data.createdAt?.toMillis?.() || Date.now(),
-          updatedAt: data.updatedAt?.toMillis?.() || Date.now(),
-        });
+        // Double-check participant filtering (defense in depth)
+        if (data.participants && data.participants.includes(uid)) {
+          userChats.push({
+            id: doc.id,
+            name: data.name,
+            participants: data.participants,
+            lastMessage: data.lastMessage
+              ? {
+                  id: data.lastMessage.id,
+                  chatId: doc.id,
+                  senderId: data.lastMessage.senderId,
+                  text: data.lastMessage.text,
+                  imageUrl: data.lastMessage.imageUrl,
+                  createdAt:
+                    data.lastMessage.createdAt?.toMillis?.() || Date.now(),
+                  status: data.lastMessage.status || 'sent',
+                }
+              : undefined,
+            createdAt: data.createdAt?.toMillis?.() || Date.now(),
+            updatedAt: data.updatedAt?.toMillis?.() || Date.now(),
+          });
+        }
       });
-
-      // Filter chats where user is a participant (client-side filtering)
-      const userChats = allChats.filter(
-        chat => chat.participants && chat.participants.includes(uid)
-      );
 
       // Sort chats by updatedAt on the client side
       userChats.sort((a, b) => b.updatedAt - a.updatedAt);
@@ -235,23 +235,18 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
   }
 
   // Debug function to check if a chat exists and what participants it has
-  async debugChat(chatId: string): Promise<void> {
+  async debugChat(chatId: string): Promise<any> {
     try {
       const chatRef = doc(db, 'chats', chatId);
       const chatDoc = await getDoc(chatRef);
 
       if (chatDoc.exists()) {
-        const data = chatDoc.data();
-        console.log(
-          `DEBUG: Chat ${chatId} exists with participants:`,
-          data.participants
-        );
-        console.log(`DEBUG: Chat data:`, data);
-      } else {
-        console.log(`DEBUG: Chat ${chatId} does not exist`);
+        return chatDoc.data();
       }
+      return null;
     } catch (error) {
-      console.error('DEBUG: Error checking chat:', error);
+      console.error('Error checking chat:', error);
+      return null;
     }
   }
 
@@ -304,24 +299,92 @@ export class FirebaseTransport implements MessagingTransport, ChatTransport {
   }
 
   // Debug function to manually check all chats in the database
-  async debugAllChats(): Promise<void> {
+  async debugAllChats(): Promise<any[]> {
     try {
       const chatsRef = collection(db, 'chats');
       const snapshot = await getDocs(chatsRef);
 
-      console.log('=== DEBUG: All chats in database ===');
-      console.log(`Total chats found: ${snapshot.size}`);
+      const chats = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        console.log(`Chat ID: ${doc.id}`);
-        console.log(`Participants:`, data.participants);
-        console.log(`Created:`, data.createdAt?.toMillis?.() || 'unknown');
-        console.log(`Updated:`, data.updatedAt?.toMillis?.() || 'unknown');
-        console.log('---');
-      });
+      return chats;
     } catch (error) {
-      console.error('DEBUG: Error getting all chats:', error);
+      console.error('Error getting all chats:', error);
+      return [];
+    }
+  }
+
+  // Mark messages as read when user views a chat
+  async markMessagesAsRead(
+    chatId: string,
+    userId: string,
+    limitCount: number = 50
+  ): Promise<void> {
+    try {
+      const messagesRef = collection(db, 'chats', chatId, 'messages');
+      // Get recent messages and filter client-side to avoid multiple != filters
+      const q = query(
+        messagesRef,
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        return;
+      }
+
+      // Filter messages client-side: from other users and not already read
+      const messagesToUpdate = snapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.senderId !== userId && data.status !== 'read';
+      });
+
+      if (messagesToUpdate.length === 0) {
+        return;
+      }
+
+      // Use batch write for efficiency
+      const batch = writeBatch(db);
+      const readAt = serverTimestamp();
+
+      messagesToUpdate.forEach(doc => {
+        const messageRef = doc.ref;
+        batch.update(messageRef, {
+          status: 'read',
+          readAt: readAt,
+        });
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+      throw error;
+    }
+  }
+
+  // Update message status (for delivered/read receipts)
+  async updateMessageStatus(
+    chatId: string,
+    messageId: string,
+    status: 'sent' | 'delivered' | 'read',
+    readAt?: number
+  ): Promise<void> {
+    try {
+      const messageRef = doc(db, 'chats', chatId, 'messages', messageId);
+      const updateData: any = { status };
+
+      if (status === 'read' && readAt) {
+        updateData.readAt = readAt;
+      }
+
+      await updateDoc(messageRef, updateData);
+    } catch (error) {
+      console.error('Error updating message status:', error);
+      throw error;
     }
   }
 }

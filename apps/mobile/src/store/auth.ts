@@ -119,6 +119,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     try {
       set({ loading: true, error: null });
+
+      // CRITICAL: Clean up ALL listeners BEFORE signing out to prevent permission errors
+      const { useChatStore } = await import('./chat');
+      const { usePresenceStore } = await import('./presence');
+
+      // Disconnect chat (which also cleans up presence)
+      useChatStore.getState().disconnect();
+
+      // Extra cleanup to ensure presence listeners are gone
+      usePresenceStore.getState().cleanup();
+
+      // Small delay to ensure all cleanup completes
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       await signOut(auth);
       set({ user: null, loading: false });
     } catch (error: any) {
@@ -176,6 +190,16 @@ onAuthStateChanged(auth, async firebaseUser => {
       useAuthStore.setState({ loading: false });
     }
   } else {
+    // User signed out - clean up all listeners immediately
+    try {
+      const { useChatStore } = await import('./chat');
+      const chatStore = useChatStore.getState();
+      if (chatStore.transport) {
+        chatStore.disconnect();
+      }
+    } catch (error) {
+      // Ignore errors during cleanup
+    }
     useAuthStore.setState({ user: null, loading: false });
   }
 });

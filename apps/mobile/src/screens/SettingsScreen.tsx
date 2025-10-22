@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ButtonText } from '@ui/button';
 import { useAuthStore } from '../store/auth';
@@ -17,7 +17,7 @@ const SettingsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Settings</Text>
         </View>
@@ -38,7 +38,7 @@ const SettingsScreen: React.FC = () => {
             </Button>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };

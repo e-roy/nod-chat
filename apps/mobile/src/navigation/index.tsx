@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuthStore } from '../store/auth';
+import { PresenceInitializer } from '../components/PresenceInitializer';
 import AuthScreen from '../screens/AuthScreen';
 import ChatListScreen from '../screens/ChatListScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -39,43 +40,45 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
-          <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen
-              name="Chat"
-              component={ChatScreen}
-              options={{
-                title: 'Chat',
-                headerShown: true,
-              }}
-            />
-            <Stack.Screen
-              name="NewChat"
-              component={NewChatScreen}
-              options={{
-                title: 'New Chat',
-                headerShown: true,
-                presentation: 'modal',
-              }}
-            />
-            <Stack.Screen
-              name="ProfileSetup"
-              component={ProfileSetupScreen}
-              options={{
-                title: 'Complete Profile',
-                headerShown: true,
-                presentation: 'modal',
-              }}
-            />
-          </>
-        ) : (
-          <Stack.Screen name="Auth" component={AuthScreen} />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <PresenceInitializer>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {user ? (
+            <>
+              <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen
+                name="Chat"
+                component={ChatScreen}
+                options={{
+                  title: 'Chat',
+                  headerShown: true,
+                }}
+              />
+              <Stack.Screen
+                name="NewChat"
+                component={NewChatScreen}
+                options={{
+                  title: 'New Chat',
+                  headerShown: true,
+                  presentation: 'modal',
+                }}
+              />
+              <Stack.Screen
+                name="ProfileSetup"
+                component={ProfileSetupScreen}
+                options={{
+                  title: 'Complete Profile',
+                  headerShown: true,
+                  presentation: 'modal',
+                }}
+              />
+            </>
+          ) : (
+            <Stack.Screen name="Auth" component={AuthScreen} />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </PresenceInitializer>
   );
 };
 
