@@ -154,8 +154,7 @@ firebase-debug.*.log
 # plist files
 **/*.plist
 
-# docs files
-docs/
+
 
 # android files
 android/
