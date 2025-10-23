@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "40491711809",
+    "firebase_url": "https://message-ai-b426b-default-rtdb.firebaseio.com",
+    "project_id": "message-ai-b426b",
+    "storage_bucket": "message-ai-b426b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:40491711809:android:cef6a411b8eee4410bf5c0",
+        "android_client_info": {
+          "package_name": "com.fullstackeric.messageai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBN0Zh1w2qv1wsVbl6J_NDLSCLpTIVkRg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
