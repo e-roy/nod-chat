@@ -156,5 +156,7 @@ firebase-debug.*.log
 
 
 
+
 # android files
 android/
+**/local.properties

@@ -3,7 +3,7 @@ import { FlatList, Pressable, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/firebase/firebaseApp';
 
 import { Avatar, AvatarImage, AvatarFallbackText } from '@ui/avatar';
 import { Button, ButtonText } from '@ui/button';
@@ -19,7 +19,6 @@ import { VStack } from '@ui/vstack';
 import { useGroupStore } from '@/store/groups';
 import { useAuthStore } from '@/store/auth';
 
-import { db } from '@/firebase/firebaseApp';
 import { User } from '@chatapp/shared';
 import { RootStackParamList } from '@/types/navigation';
 
@@ -49,9 +48,8 @@ const GroupCreateScreen = () => {
     setLoadingUsers(true);
     try {
       // Get all users except current user
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('uid', '!=', user.uid));
-      const snapshot = await getDocs(q);
+      const usersRef = db().collection('users').where('uid', '!=', user.uid);
+      const snapshot = await usersRef.get();
 
       const users: User[] = [];
       snapshot.forEach(doc => {

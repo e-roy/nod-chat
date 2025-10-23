@@ -11,7 +11,7 @@ import {
   NativeStackNavigationProp,
   NativeStackScreenProps,
 } from '@react-navigation/native-stack';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/firebase/firebaseApp';
 
 import { Avatar, AvatarImage, AvatarFallbackText } from '@ui/avatar';
 import { Box } from '@ui/box';
@@ -28,8 +28,6 @@ import { useGroupStore } from '@/store/groups';
 import { useAuthStore } from '@/store/auth';
 import { ChatMessage, Group, User } from '@chatapp/shared';
 import { RootStackParamList } from '@/types/navigation';
-
-import { db } from '@/firebase/firebaseApp';
 
 type GroupChatScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -87,9 +85,8 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
       const userIds = group.members.filter(id => !userCache.has(id));
       if (userIds.length === 0) return;
 
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('uid', 'in', userIds));
-      const snapshot = await getDocs(q);
+      const usersRef = db().collection('users').where('uid', 'in', userIds);
+      const snapshot = await usersRef.get();
 
       const newUserCache = new Map(userCache);
       snapshot.forEach(doc => {

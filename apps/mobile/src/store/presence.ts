@@ -1,13 +1,6 @@
 import { create } from 'zustand';
-import {
-  ref,
-  set as firebaseSet,
-  onDisconnect,
-  onValue,
-  off,
-  get as rtdbGet,
-} from 'firebase/database';
-import { doc, onSnapshot } from 'firebase/firestore';
+import database from '@react-native-firebase/database';
+import firestore from '@react-native-firebase/firestore';
 import { rtdb, db } from '../firebase/firebaseApp';
 import { useAuthStore } from './auth';
 
@@ -41,17 +34,17 @@ export const usePresenceStore = create<PresenceState & PresenceActions>(
       if (!user) return;
 
       try {
-        const statusRef = ref(rtdb, `status/${user.uid}`);
+        const statusRef = rtdb().ref(`status/${user.uid}`);
         const timestamp = Date.now();
 
         // Set online status
-        firebaseSet(statusRef, {
+        statusRef.set({
           state: 'online',
           lastChanged: timestamp,
         });
 
         // Set up disconnect handler
-        onDisconnect(statusRef).set({
+        statusRef.onDisconnect().set({
           state: 'offline',
           lastChanged: timestamp,
         });
@@ -67,10 +60,10 @@ export const usePresenceStore = create<PresenceState & PresenceActions>(
       if (!user) return;
 
       try {
-        const statusRef = ref(rtdb, `status/${user.uid}`);
+        const statusRef = rtdb().ref(`status/${user.uid}`);
         const timestamp = Date.now();
 
-        firebaseSet(statusRef, {
+        statusRef.set({
           state: 'offline',
           lastChanged: timestamp,
         });
@@ -89,20 +82,21 @@ export const usePresenceStore = create<PresenceState & PresenceActions>(
       }
 
       // Subscribe to Firestore user document (mirrored by Cloud Function)
-      const userRef = doc(db, 'users', userId);
+      const userRef = firestore().collection('users').doc(userId);
 
-      const unsubscribe = onSnapshot(
-        userRef,
+      const unsubscribe = userRef.onSnapshot(
         docSnapshot => {
           if (docSnapshot.exists()) {
             const data = docSnapshot.data();
-            const { userPresence } = get();
-            const newPresence = new Map(userPresence);
-            newPresence.set(userId, {
-              online: data.online || false,
-              lastSeen: data.lastSeen || Date.now(),
-            });
-            set({ userPresence: newPresence });
+            if (data) {
+              const { userPresence } = get();
+              const newPresence = new Map(userPresence);
+              newPresence.set(userId, {
+                online: data.online || false,
+                lastSeen: data.lastSeen || Date.now(),
+              });
+              set({ userPresence: newPresence });
+            }
           }
         },
         error => {
@@ -162,8 +156,8 @@ export const usePresenceStore = create<PresenceState & PresenceActions>(
     // Debug function to check RTDB data
     debugPresence: async (userId: string) => {
       try {
-        const statusRef = ref(rtdb, `status/${userId}`);
-        const snapshot = await rtdbGet(statusRef);
+        const statusRef = rtdb().ref(`status/${userId}`);
+        const snapshot = await statusRef.once('value');
         return snapshot.val();
       } catch (error) {
         console.error('Error debugging presence:', error);

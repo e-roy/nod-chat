@@ -6,7 +6,7 @@ alwaysApply: true
 
 Build a production-grade **Expo (React Native) + Firebase** messaging app with a clean, scalable architecture and fast iteration in Cursor.
 
-- **Package manager:** `pnpm` (workspaces)
+- **Package manager:** `yarn` (workspaces)
 - **Architecture:** feature-first folders, small modules, pluggable messaging transport
 - **UI:** **gluestack-ui** (RN-first, themeable)
 - **Rule of 350:** Keep app source files **≤ 350 LOC** when reasonable.

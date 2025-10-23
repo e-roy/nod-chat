@@ -1,27 +1,39 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { useAuthStore } from '../auth';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-// Mock Firebase functions
-const mockCreateUserWithEmailAndPassword =
-  createUserWithEmailAndPassword as jest.MockedFunction<
-    typeof createUserWithEmailAndPassword
-  >;
-const mockSignInWithEmailAndPassword =
-  signInWithEmailAndPassword as jest.MockedFunction<
-    typeof signInWithEmailAndPassword
-  >;
-const mockSignOut = signOut as jest.MockedFunction<typeof signOut>;
-const mockDoc = doc as jest.MockedFunction<typeof doc>;
-const mockSetDoc = setDoc as jest.MockedFunction<typeof setDoc>;
-const mockGetDoc = getDoc as jest.MockedFunction<typeof getDoc>;
+// Mock react-native-firebase modules
+jest.mock('@react-native-firebase/auth', () => ({
+  __esModule: true,
+  default: () => ({
+    createUserWithEmailAndPassword: jest.fn(),
+    signInWithEmailAndPassword: jest.fn(),
+    signOut: jest.fn(),
+    onAuthStateChanged: jest.fn(),
+    currentUser: {
+      updateProfile: jest.fn(),
+    },
+  }),
+}));
+
+jest.mock('@react-native-firebase/firestore', () => ({
+  __esModule: true,
+  default: () => ({
+    collection: jest.fn(() => ({
+      doc: jest.fn(() => ({
+        get: jest.fn(),
+        set: jest.fn(),
+      })),
+    })),
+    FieldValue: {
+      serverTimestamp: jest.fn(),
+    },
+  }),
+}));
 
 describe('useAuthStore', () => {
+  const mockAuth = require('@react-native-firebase/auth').default();
+  const mockFirestore = require('@react-native-firebase/firestore').default();
+
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset store state
@@ -35,18 +47,25 @@ describe('useAuthStore', () => {
         email: 'test@example.com',
         displayName: 'Test User',
         photoURL: null,
+        updateProfile: jest.fn(),
       };
 
       const mockUserCredential = {
         user: mockUser,
       };
 
-      mockCreateUserWithEmailAndPassword.mockResolvedValue(
-        mockUserCredential as any
+      mockAuth.createUserWithEmailAndPassword.mockResolvedValue(
+        mockUserCredential
       );
-      mockDoc.mockReturnValue({} as any);
-      mockGetDoc.mockResolvedValue({ exists: () => false } as any);
-      mockSetDoc.mockResolvedValue(undefined);
+
+      const mockDocRef = {
+        get: jest.fn().mockResolvedValue({ exists: false }),
+        set: jest.fn().mockResolvedValue(undefined),
+      };
+
+      mockFirestore.collection.mockReturnValue({
+        doc: jest.fn().mockReturnValue(mockDocRef),
+      });
 
       const { result } = renderHook(() => useAuthStore());
 
@@ -58,12 +77,11 @@ describe('useAuthStore', () => {
         );
       });
 
-      expect(mockCreateUserWithEmailAndPassword).toHaveBeenCalledWith(
-        expect.anything(),
+      expect(mockAuth.createUserWithEmailAndPassword).toHaveBeenCalledWith(
         'test@example.com',
         'password123'
       );
-      expect(mockSetDoc).toHaveBeenCalled();
+      expect(mockDocRef.set).toHaveBeenCalled();
       expect(result.current.user).toEqual(
         expect.objectContaining({
           uid: 'test-uid',
@@ -77,7 +95,7 @@ describe('useAuthStore', () => {
 
     it('should handle sign up errors', async () => {
       const mockError = new Error('Email already in use');
-      mockCreateUserWithEmailAndPassword.mockRejectedValue(mockError);
+      mockAuth.createUserWithEmailAndPassword.mockRejectedValue(mockError);
 
       const { result } = renderHook(() => useAuthStore());
 
@@ -122,14 +140,18 @@ describe('useAuthStore', () => {
         createdAt: expect.any(Number),
       };
 
-      mockSignInWithEmailAndPassword.mockResolvedValue(
-        mockUserCredential as any
-      );
-      mockDoc.mockReturnValue({} as any);
-      mockGetDoc.mockResolvedValue({
-        exists: () => true,
-        data: () => mockUserDoc,
-      } as any);
+      mockAuth.signInWithEmailAndPassword.mockResolvedValue(mockUserCredential);
+
+      const mockDocRef = {
+        get: jest.fn().mockResolvedValue({
+          exists: true,
+          data: () => mockUserDoc,
+        }),
+      };
+
+      mockFirestore.collection.mockReturnValue({
+        doc: jest.fn().mockReturnValue(mockDocRef),
+      });
 
       const { result } = renderHook(() => useAuthStore());
 
@@ -137,8 +159,7 @@ describe('useAuthStore', () => {
         await result.current.signIn('test@example.com', 'password123');
       });
 
-      expect(mockSignInWithEmailAndPassword).toHaveBeenCalledWith(
-        expect.anything(),
+      expect(mockAuth.signInWithEmailAndPassword).toHaveBeenCalledWith(
         'test@example.com',
         'password123'
       );
@@ -150,7 +171,7 @@ describe('useAuthStore', () => {
 
   describe('signOut', () => {
     it('should successfully sign out', async () => {
-      mockSignOut.mockResolvedValue(undefined);
+      mockAuth.signOut.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useAuthStore());
 
@@ -158,7 +179,7 @@ describe('useAuthStore', () => {
         await result.current.signOut();
       });
 
-      expect(mockSignOut).toHaveBeenCalled();
+      expect(mockAuth.signOut).toHaveBeenCalled();
       expect(result.current.user).toBeNull();
       expect(result.current.loading).toBe(false);
       expect(result.current.error).toBeNull();

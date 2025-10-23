@@ -1,13 +1,4 @@
-import {
-  ref,
-  set as firebaseSet,
-  remove,
-  onValue,
-  onChildAdded,
-  onChildChanged,
-  onChildRemoved,
-  off,
-} from 'firebase/database';
+import database from '@react-native-firebase/database';
 import { rtdb } from '@/firebase/firebaseApp';
 import { useAuthStore } from '@/store/auth';
 
@@ -47,7 +38,7 @@ class TypingManager {
     if (!user) return;
 
     // Listen for typing indicators from other users
-    const typingRef = ref(rtdb, `typing/${this.chatId}`);
+    const typingRef = rtdb().ref(`typing/${this.chatId}`);
 
     const callback = (snapshot: any) => {
       try {
@@ -69,10 +60,10 @@ class TypingManager {
       }
     };
 
-    const unsubscribe = onValue(typingRef, callback, error => {
+    const unsubscribe = typingRef.on('value', callback, error => {
       console.error('[TypingManager] onValue ERROR:', error);
     });
-    this.unsubscribeCallbacks.push(unsubscribe);
+    this.unsubscribeCallbacks.push(() => typingRef.off('value', callback));
   }
 
   private notifyListeners() {
@@ -102,8 +93,8 @@ class TypingManager {
       }
 
       // Set typing to true
-      const typingRef = ref(rtdb, `typing/${this.chatId}/${user.uid}`);
-      firebaseSet(typingRef, true).catch(error => {
+      const typingRef = rtdb().ref(`typing/${this.chatId}/${user.uid}`);
+      typingRef.set(true).catch(error => {
         console.error('[TypingManager] Error setting typing in RTDB:', error);
       });
 
@@ -132,8 +123,8 @@ class TypingManager {
       }
 
       // Remove typing indicator
-      const typingRef = ref(rtdb, `typing/${this.chatId}/${user.uid}`);
-      remove(typingRef);
+      const typingRef = rtdb().ref(`typing/${this.chatId}/${user.uid}`);
+      typingRef.remove();
 
       this.state.isTyping = false;
     } catch (error) {

@@ -1,7 +1,7 @@
 {
   "name": "chatapp-monorepo",
   "private": true,
-  "packageManager": "pnpm@10.18.3",
+  "packageManager": "yarn@1.22.22",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -12,16 +12,20 @@
     "infra/*"
   ],
   "scripts": {
-    "dev": "pnpm --filter @chatapp/mobile dev",
-    "dev:tunnel": "pnpm --filter @chatapp/mobile start --port 8082",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "build": "pnpm -r build",
-    "clean": "pnpm -r run clean || true",
+    "dev": "yarn workspace @chatapp/mobile dev",
+    "dev:tunnel": "yarn workspace @chatapp/mobile start --port 8082",
+    "lint": "yarn workspaces run lint",
+    "typecheck": "yarn workspaces run typecheck",
+    "build": "yarn workspaces run build",
+    "clean": "yarn workspaces run clean || true",
     "deploy:firestore": "firebase deploy --only firestore",
     "deploy:storage": "firebase deploy --only storage",
     "emulators": "firebase emulators:start",
     "emulators:auth": "firebase emulators:start --only auth",
-    "emulators:firestore": "firebase emulators:start --only firestore"
-  }
+    "emulators:firestore": "firebase emulators:start --only firestore",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
+  },
+  "version": "1.0.0",
+  "dependencies": {}
 }

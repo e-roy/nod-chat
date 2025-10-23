@@ -37,6 +37,19 @@ A production-grade Expo (React Native) + Firebase messaging app with clean, scal
 
 ## Setup Instructions
 
+### Development Options
+
+This project supports two development approaches:
+
+1. **Local Development with Expo Go** (faster setup, limited native features)
+2. **EAS Development Builds** (full native features, requires build step)
+
+**For EAS Development (Recommended):** See [EAS Development Setup Guide](docs/eas-development-setup.md)
+
+**For Local Development:** Continue with the instructions below.
+
+---
+
 ### 1. Firebase Project Setup
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
@@ -50,25 +63,30 @@ A production-grade Expo (React Native) + Firebase messaging app with clean, scal
 5. Enable Storage:
    - Go to Storage
    - Get started with default rules
-6. Get your Firebase config:
+6. Enable Realtime Database:
+   - Go to Realtime Database
+   - Create database in test mode
+7. Get Firebase configuration:
    - Go to Project Settings > General
    - Scroll down to "Your apps" section
-   - Click "Add app" > Web app
-   - Copy the config object
+   - Click "Add app" and select Android
+   - Register app with package name: `com.chatapp.mobile`
+   - Download `google-services.json` and place it in `apps/mobile/android/app/`
+   - For iOS, add iOS app with bundle ID: `com.chatapp.mobile`
+   - Download `GoogleService-Info.plist` and place it in `apps/mobile/ios/ChatApp/` (after running `npx expo prebuild --platform ios`)
 
 ### 2. Environment Variables
 
-Create a `.env` file in the `apps/mobile` directory:
+Create a `.env` file in the project root with your Firebase configuration:
 
 ```env
-EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key_here
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-EXPO_PUBLIC_FIREBASE_DATABASE_URL=
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
-
+EXPO_PUBLIC_FIREBASE_DATABASE_URL=https://your_project-default-rtdb.firebaseio.com
 EXPO_PUBLIC_EMULATOR_HOST=10.1.10.90
 ```
 
@@ -77,27 +95,91 @@ EXPO_PUBLIC_EMULATOR_HOST=10.1.10.90
 ### 3. Install Dependencies
 
 ```bash
-# Install all dependencies
 pnpm install
-
-# Install mobile app dependencies
-pnpm --filter @chatapp/mobile add firebase expo-secure-store @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs react-native-safe-area-context react-native-screens @react-native-async-storage/async-storage zustand
-
-# Install UI dependencies
-pnpm --filter @chatapp/mobile add @gluestack-ui/themed @gluestack-ui/config @gluestack-style/react react-native-svg react-native-reanimated react-native-gesture-handler
 ```
 
-### 4. Run the App
+### 4. iOS Setup (macOS/Linux only)
+
+If you're on macOS or Linux, generate the iOS project:
+
+```bash
+cd apps/mobile
+npx expo prebuild --platform ios
+```
+
+Then move `GoogleService-Info.plist` to `ios/ChatApp/` folder.
+
+### 5. Android Setup
+
+The `google-services.json` file should be placed in `apps/mobile/android/app/` directory.
+
+**Important:** After cloning the repository, you'll need to create a `local.properties` file in `apps/mobile/android/` to specify your Android SDK location:
+
+#### Option 1: Using the template (Recommended)
+
+```bash
+cd apps/mobile/android
+cp local.properties.template local.properties
+# Edit local.properties and replace YOUR_USERNAME with your actual username
+```
+
+#### Option 2: Manual creation
+
+```bash
+cd apps/mobile/android
+echo "sdk.dir=C:/Users/YOUR_USERNAME/AppData/Local/Android/Sdk" > local.properties
+```
+
+#### Option 3: Using Android Studio
+
+1. Open Android Studio
+2. Go to File > Project Structure > SDK Location
+3. Copy the Android SDK location path
+4. Create `local.properties` with: `sdk.dir=YOUR_ACTUAL_SDK_PATH`
+
+**Platform-specific paths:**
+
+- **Windows:** `C:/Users/YOUR_USERNAME/AppData/Local/Android/Sdk`
+- **macOS:** `/Users/YOUR_USERNAME/Library/Android/sdk`
+- **Linux:** `/home/YOUR_USERNAME/Android/Sdk`
+
+This file is automatically ignored by git and should never be committed to the repository.
+
+### 6. Run the App
 
 ```bash
 # Start the development server
 pnpm dev
 
-# Or run specific platforms
+# Run on Android
 pnpm --filter @chatapp/mobile android
+
+# Run on iOS (macOS/Linux only)
 pnpm --filter @chatapp/mobile ios
+
+# Run on web
 pnpm --filter @chatapp/mobile web
 ```
+
+### 7. Firebase Emulators (Optional)
+
+To run with local Firebase emulators:
+
+```bash
+# Start emulators
+pnpm emulators
+
+# In another terminal, start the app
+pnpm dev
+```
+
+## Architecture Notes
+
+- **react-native-firebase**: Uses native Firebase SDKs for better performance and offline support
+- **Transport Abstraction**: UI code never calls Firebase directly; it uses the `MessagingTransport` interface
+- **Feature-first Structure**: Each feature owns its screens, hooks, and services
+- **Zustand State Management**: Lightweight state management with stores for auth, chat, groups, and presence
+- **gluestack-ui**: Modern, themeable UI components built for React Native
 
 ### 5. Multi-Device Development Setup
 
@@ -161,12 +243,19 @@ firebase deploy --only storage
 
 ```bash
 # Development
-pnpm dev                    # Start Expo development server (iPhone/Expo Go)
+pnpm dev                    # Start Expo development server (Expo Go)
 pnpm dev:tunnel             # Start Expo server for Android emulator (local network)
+pnpm --filter @chatapp/mobile dev:client  # Start with development client
 pnpm run emulators          # Start Firebase emulators
 pnpm --filter @chatapp/mobile android  # Run on Android
 pnpm --filter @chatapp/mobile ios      # Run on iOS
 pnpm --filter @chatapp/mobile web      # Run on Web
+
+# EAS Development Builds
+pnpm --filter @chatapp/mobile build:dev:android   # Build dev client for Android
+pnpm --filter @chatapp/mobile build:dev:ios       # Build dev client for iOS
+pnpm --filter @chatapp/mobile build:preview:android  # Build preview for Android
+pnpm --filter @chatapp/mobile build:preview:ios     # Build preview for iOS
 
 # Code Quality
 pnpm --filter @chatapp/mobile lint     # Run ESLint

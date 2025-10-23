@@ -15,7 +15,6 @@ import { useAuthStore } from '@/store/auth';
 import { useChatStore } from '@/store/chat';
 import { usePresenceStore } from '@/store/presence';
 import { Chat } from '@chatapp/shared';
-import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/firebaseApp';
 // TODO: Re-enable when typing indicators work
 // import { ref, onValue } from 'firebase/database';
@@ -79,12 +78,12 @@ const ChatListScreen: React.FC = () => {
     }
 
     try {
-      const userRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userRef);
+      const userRef = db().collection('users').doc(userId);
+      const userDoc = await userRef.get();
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        const email = userData.email || userId;
+        const email = userData?.email || userId;
         setUserEmails(prev => new Map(prev).set(userId, email));
         return email;
       }

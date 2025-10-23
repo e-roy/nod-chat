@@ -1,20 +1,4 @@
-import {
-  collection,
-  doc,
-  addDoc,
-  setDoc,
-  onSnapshot,
-  query,
-  where,
-  orderBy,
-  limit,
-  serverTimestamp,
-  updateDoc,
-  getDocs,
-  getDoc,
-  Timestamp,
-  writeBatch,
-} from 'firebase/firestore';
+import firestore from '@react-native-firebase/firestore';
 import { db } from '@/firebase/firebaseApp';
 import {
   MessagingTransport,
@@ -41,13 +25,11 @@ export class FirebaseTransport
       const collectionName = isGroupMessage ? 'groups' : 'chats';
 
       // Use the client-generated message ID instead of letting Firestore generate one
-      const messageRef = doc(
-        db,
-        collectionName,
-        msg.chatId,
-        'messages',
-        msg.id
-      );
+      const messageRef = db()
+        .collection(collectionName)
+        .doc(msg.chatId)
+        .collection('messages')
+        .doc(msg.id);
 
       // For group messages, initialize readBy with sender
       const messageData: any = {
@@ -56,7 +38,7 @@ export class FirebaseTransport
         senderId: msg.senderId,
         text: msg.text,
         status: 'sent', // Set status to 'sent' when writing to Firestore
-        createdAt: serverTimestamp(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
       };
 
       // Only include optional fields if they're defined
@@ -67,18 +49,18 @@ export class FirebaseTransport
         messageData.readBy = msg.readBy;
       }
 
-      await setDoc(messageRef, messageData);
+      await messageRef.set(messageData);
 
       // Update chat/group's lastMessage and updatedAt
-      const chatRef = doc(db, collectionName, msg.chatId);
-      await updateDoc(chatRef, {
+      const chatRef = db().collection(collectionName).doc(msg.chatId);
+      await chatRef.update({
         lastMessage: {
           id: msg.id,
           text: msg.text,
           senderId: msg.senderId,
-          createdAt: serverTimestamp(),
+          createdAt: firestore.FieldValue.serverTimestamp(),
         },
-        updatedAt: serverTimestamp(),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
       });
     } catch (error) {
       console.error('Error sending message:', error);
@@ -91,10 +73,13 @@ export class FirebaseTransport
     const isGroupMessage = chatId.startsWith('group_');
     const collectionName = isGroupMessage ? 'groups' : 'chats';
 
-    const messagesRef = collection(db, collectionName, chatId, 'messages');
-    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+    const messagesRef = db()
+      .collection(collectionName)
+      .doc(chatId)
+      .collection('messages')
+      .orderBy('createdAt', 'asc');
 
-    const unsubscribe = onSnapshot(q, snapshot => {
+    const unsubscribe = messagesRef.onSnapshot(snapshot => {
       snapshot.docChanges().forEach(change => {
         // Listen for both new messages and status updates
         if (change.type === 'added' || change.type === 'modified') {
@@ -127,14 +112,14 @@ export class FirebaseTransport
       const isGroupMessage = chatId.startsWith('group_');
       const collectionName = isGroupMessage ? 'groups' : 'chats';
 
-      const messagesRef = collection(db, collectionName, chatId, 'messages');
-      const q = query(
-        messagesRef,
-        orderBy('createdAt', 'desc'),
-        limit(limitCount)
-      );
+      const messagesRef = db()
+        .collection(collectionName)
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('createdAt', 'desc')
+        .limit(limitCount);
 
-      const snapshot = await getDocs(q);
+      const snapshot = await messagesRef.get();
       const messages: ChatMessage[] = [];
 
       snapshot.forEach(doc => {
@@ -165,8 +150,8 @@ export class FirebaseTransport
       const chatId = sortedParticipants.join('_');
 
       // Check if chat already exists
-      const chatRef = doc(db, 'chats', chatId);
-      const chatDoc = await getDoc(chatRef);
+      const chatRef = db().collection('chats').doc(chatId);
+      const chatDoc = await chatRef.get();
 
       if (chatDoc.exists()) {
         return chatId;
@@ -176,11 +161,11 @@ export class FirebaseTransport
       const chatData = {
         id: chatId,
         participants: sortedParticipants,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
       };
 
-      await setDoc(chatRef, chatData);
+      await chatRef.set(chatData);
       return chatId;
     } catch (error) {
       console.error('Error creating chat:', error);
@@ -190,11 +175,11 @@ export class FirebaseTransport
 
   async getChats(uid: string): Promise<Chat[]> {
     try {
-      const chatsRef = collection(db, 'chats');
-      // Query only chats where this user is a participant
-      const q = query(chatsRef, where('participants', 'array-contains', uid));
+      const chatsRef = db()
+        .collection('chats')
+        .where('participants', 'array-contains', uid);
 
-      const snapshot = await getDocs(q);
+      const snapshot = await chatsRef.get();
       const chats: Chat[] = [];
 
       snapshot.forEach(doc => {
@@ -233,11 +218,11 @@ export class FirebaseTransport
   }
 
   onChatUpdate(uid: string, cb: (chats: Chat[]) => void): () => void {
-    const chatsRef = collection(db, 'chats');
-    // Query only chats where this user is a participant
-    const q = query(chatsRef, where('participants', 'array-contains', uid));
+    const chatsRef = db()
+      .collection('chats')
+      .where('participants', 'array-contains', uid);
 
-    const unsubscribe = onSnapshot(q, snapshot => {
+    const unsubscribe = chatsRef.onSnapshot(snapshot => {
       const userChats: Chat[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
@@ -277,8 +262,8 @@ export class FirebaseTransport
   // Debug function to check if a chat exists and what participants it has
   async debugChat(chatId: string): Promise<any> {
     try {
-      const chatRef = doc(db, 'chats', chatId);
-      const chatDoc = await getDoc(chatRef);
+      const chatRef = db().collection('chats').doc(chatId);
+      const chatDoc = await chatRef.get();
 
       if (chatDoc.exists()) {
         return chatDoc.data();
@@ -305,13 +290,13 @@ export class FirebaseTransport
     displayName?: string
   ): Promise<void> {
     try {
-      const userRef = doc(db, 'users', uid);
-      await setDoc(userRef, {
+      const userRef = db().collection('users').doc(uid);
+      await userRef.set({
         uid,
         email,
         displayName: displayName || email.split('@')[0],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
       });
     } catch (error) {
       console.error('Error creating user profile:', error);
@@ -321,9 +306,8 @@ export class FirebaseTransport
 
   async findUserByEmail(email: string): Promise<string | null> {
     try {
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', email));
-      const snapshot = await getDocs(q);
+      const usersRef = db().collection('users').where('email', '==', email);
+      const snapshot = await usersRef.get();
 
       if (snapshot.empty) {
         return null;
@@ -341,8 +325,8 @@ export class FirebaseTransport
   // Debug function to manually check all chats in the database
   async debugAllChats(): Promise<any[]> {
     try {
-      const chatsRef = collection(db, 'chats');
-      const snapshot = await getDocs(chatsRef);
+      const chatsRef = db().collection('chats');
+      const snapshot = await chatsRef.get();
 
       const chats = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -363,15 +347,14 @@ export class FirebaseTransport
     limitCount: number = 50
   ): Promise<void> {
     try {
-      const messagesRef = collection(db, 'chats', chatId, 'messages');
-      // Get recent messages and filter client-side to avoid multiple != filters
-      const q = query(
-        messagesRef,
-        orderBy('createdAt', 'desc'),
-        limit(limitCount)
-      );
+      const messagesRef = db()
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('createdAt', 'desc')
+        .limit(limitCount);
 
-      const snapshot = await getDocs(q);
+      const snapshot = await messagesRef.get();
 
       if (snapshot.empty) {
         return;
@@ -388,8 +371,8 @@ export class FirebaseTransport
       }
 
       // Use batch write for efficiency
-      const batch = writeBatch(db);
-      const readAt = serverTimestamp();
+      const batch = db().batch();
+      const readAt = firestore.FieldValue.serverTimestamp();
 
       messagesToUpdate.forEach(doc => {
         const messageRef = doc.ref;
@@ -418,14 +401,18 @@ export class FirebaseTransport
       const isGroupMessage = chatId.startsWith('group_');
       const collectionName = isGroupMessage ? 'groups' : 'chats';
 
-      const messageRef = doc(db, collectionName, chatId, 'messages', messageId);
+      const messageRef = db()
+        .collection(collectionName)
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId);
       const updateData: any = { status };
 
       if (status === 'read' && readAt) {
         updateData.readAt = readAt;
       }
 
-      await updateDoc(messageRef, updateData);
+      await messageRef.update(updateData);
     } catch (error) {
       console.error('Error updating message status:', error);
       throw error;
@@ -441,17 +428,17 @@ export class FirebaseTransport
     try {
       const groupId = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      const groupRef = doc(db, 'groups', groupId);
+      const groupRef = db().collection('groups').doc(groupId);
       const groupData = {
         id: groupId,
         name,
         members,
         admins: [creatorId], // Creator is the first admin
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
       };
 
-      await setDoc(groupRef, groupData);
+      await groupRef.set(groupData);
       return groupId;
     } catch (error) {
       console.error('Error creating group:', error);
@@ -461,10 +448,11 @@ export class FirebaseTransport
 
   async getGroups(uid: string): Promise<Group[]> {
     try {
-      const groupsRef = collection(db, 'groups');
-      const q = query(groupsRef, where('members', 'array-contains', uid));
+      const groupsRef = db()
+        .collection('groups')
+        .where('members', 'array-contains', uid);
 
-      const snapshot = await getDocs(q);
+      const snapshot = await groupsRef.get();
       const groups: Group[] = [];
 
       snapshot.forEach(doc => {
@@ -504,10 +492,11 @@ export class FirebaseTransport
   }
 
   onGroupUpdate(uid: string, cb: (groups: Group[]) => void): () => void {
-    const groupsRef = collection(db, 'groups');
-    const q = query(groupsRef, where('members', 'array-contains', uid));
+    const groupsRef = db()
+      .collection('groups')
+      .where('members', 'array-contains', uid);
 
-    const unsubscribe = onSnapshot(q, snapshot => {
+    const unsubscribe = groupsRef.onSnapshot(snapshot => {
       const userGroups: Group[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
@@ -551,14 +540,17 @@ export class FirebaseTransport
     adminId: string
   ): Promise<void> {
     try {
-      const groupRef = doc(db, 'groups', groupId);
-      const groupDoc = await getDoc(groupRef);
+      const groupRef = db().collection('groups').doc(groupId);
+      const groupDoc = await groupRef.get();
 
-      if (!groupDoc.exists()) {
+      if (!groupDoc.exists) {
         throw new Error('Group not found');
       }
 
       const groupData = groupDoc.data();
+      if (!groupData) {
+        throw new Error('Group not found');
+      }
       if (!groupData.admins.includes(adminId)) {
         throw new Error('Only admins can add members');
       }
@@ -567,9 +559,9 @@ export class FirebaseTransport
         return; // User is already a member
       }
 
-      await updateDoc(groupRef, {
+      await groupRef.update({
         members: [...groupData.members, userId],
-        updatedAt: serverTimestamp(),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
       });
     } catch (error) {
       console.error('Error adding group member:', error);
@@ -583,14 +575,17 @@ export class FirebaseTransport
     adminId: string
   ): Promise<void> {
     try {
-      const groupRef = doc(db, 'groups', groupId);
-      const groupDoc = await getDoc(groupRef);
+      const groupRef = db().collection('groups').doc(groupId);
+      const groupDoc = await groupRef.get();
 
-      if (!groupDoc.exists()) {
+      if (!groupDoc.exists) {
         throw new Error('Group not found');
       }
 
       const groupData = groupDoc.data();
+      if (!groupData) {
+        throw new Error('Group not found');
+      }
       if (!groupData.admins.includes(adminId)) {
         throw new Error('Only admins can remove members');
       }
@@ -606,10 +601,10 @@ export class FirebaseTransport
         (id: string) => id !== userId
       );
 
-      await updateDoc(groupRef, {
+      await groupRef.update({
         members: updatedMembers,
         admins: updatedAdmins,
-        updatedAt: serverTimestamp(),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
       });
     } catch (error) {
       console.error('Error removing group member:', error);
@@ -619,14 +614,17 @@ export class FirebaseTransport
 
   async leaveGroup(groupId: string, userId: string): Promise<void> {
     try {
-      const groupRef = doc(db, 'groups', groupId);
-      const groupDoc = await getDoc(groupRef);
+      const groupRef = db().collection('groups').doc(groupId);
+      const groupDoc = await groupRef.get();
 
-      if (!groupDoc.exists()) {
+      if (!groupDoc.exists) {
         throw new Error('Group not found');
       }
 
       const groupData = groupDoc.data();
+      if (!groupData) {
+        throw new Error('Group not found');
+      }
       if (!groupData.members.includes(userId)) {
         return; // User is not a member
       }
@@ -638,10 +636,10 @@ export class FirebaseTransport
         (id: string) => id !== userId
       );
 
-      await updateDoc(groupRef, {
+      await groupRef.update({
         members: updatedMembers,
         admins: updatedAdmins,
-        updatedAt: serverTimestamp(),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
       });
     } catch (error) {
       console.error('Error leaving group:', error);
@@ -651,10 +649,14 @@ export class FirebaseTransport
 
   async updateGroupReadStatus(groupId: string, userId: string): Promise<void> {
     try {
-      const messagesRef = collection(db, 'groups', groupId, 'messages');
-      const q = query(messagesRef, orderBy('createdAt', 'desc'), limit(50));
+      const messagesRef = db()
+        .collection('groups')
+        .doc(groupId)
+        .collection('messages')
+        .orderBy('createdAt', 'desc')
+        .limit(50);
 
-      const snapshot = await getDocs(q);
+      const snapshot = await messagesRef.get();
 
       if (snapshot.empty) {
         return;
@@ -671,7 +673,7 @@ export class FirebaseTransport
       }
 
       // Use batch write for efficiency
-      const batch = writeBatch(db);
+      const batch = db().batch();
 
       messagesToUpdate.forEach(doc => {
         const messageRef = doc.ref;
