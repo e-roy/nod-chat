@@ -5,17 +5,21 @@ require 'json'
 podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
 
 def ccache_enabled?(podfile_properties)
-  # Environment variable takes precedence
+  # Env var takes precedence, else Podfile properties
   return ENV['USE_CCACHE'] == '1' if ENV['USE_CCACHE']
-  
-  # Fall back to Podfile properties
   podfile_properties['apple.ccacheEnabled'] == 'true'
 end
 
+# Only force OFF if config explicitly disables New Arch
 ENV['RCT_NEW_ARCH_ENABLED'] ||= '0' if podfile_properties['newArchEnabled'] == 'false'
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] ||= podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
-ENV['RCT_USE_RN_DEP'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true' && podfile_properties['newArchEnabled'] != 'false'
-ENV['RCT_USE_PREBUILT_RNCORE'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true' && podfile_properties['newArchEnabled'] != 'false'
+
+# Prefer prebuilt RN Core unless user opted to build from source
+if podfile_properties['ios.buildReactNativeFromSource'] != 'true' && podfile_properties['newArchEnabled'] != 'false'
+  ENV['RCT_USE_RN_DEP'] ||= '1'
+  ENV['RCT_USE_PREBUILT_RNCORE'] ||= '1'
+end
+
 platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 
 prepare_react_native_project!
@@ -38,13 +42,13 @@ target 'nodchat' do
 
   config = use_native_modules!(config_command)
 
+  # Respect expo-build-properties (e.g., ios.useFrameworks: "static")
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
   use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
 
   use_react_native!(
     :path => config[:reactNativePath],
-    :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
-    # An absolute path to your application root.
+    :hermes_enabled => (podfile_properties['expo.jsEngine'].nil? || podfile_properties['expo.jsEngine'] == 'hermes'),
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
@@ -56,43 +60,43 @@ target 'nodchat' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
-  
+
     # ---- RNFirebase frameworks: allow non-modular React headers ----
     installer.pods_project.targets.each do |t|
-      if t.name.start_with?('RNFB') # RNFBApp, RNFBMessaging, etc.
+      if t.name.start_with?('RNFB') # e.g., RNFBApp, RNFBMessaging, etc.
         t.build_configurations.each do |bc|
           bc.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
         end
       end
     end
-  
-  # ---- Normalize C/C++ standards (New Arch uses C++20) ----
-  installer.pods_project.targets.each do |t|
-    t.build_configurations.each do |bc|
-      # C (some pods still compile .c)
-      bc.build_settings['GCC_C_LANGUAGE_STANDARD'] = 'gnu11'
 
-      # C++20 is required by Fabric/New Arch
-      bc.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'
-      bc.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+    # ---- Normalize C & C++ standards across ALL pods ----
+    installer.pods_project.targets.each do |t|
+      t.build_configurations.each do |bc|
+        # C (fixes 'implicit int' & availability macro parse issues)
+        bc.build_settings['GCC_C_LANGUAGE_STANDARD'] = 'gnu11'
+        cflags = bc.build_settings['OTHER_CFLAGS']
+        if cflags.nil?
+          bc.build_settings['OTHER_CFLAGS'] = ['$(inherited)', '-std=gnu11']
+        elsif cflags.is_a?(Array)
+          bc.build_settings['OTHER_CFLAGS'] = (cflags + ['-std=gnu11']).uniq
+        else # String
+          bc.build_settings['OTHER_CFLAGS'] = cflags.include?('-std=gnu11') ? cflags : "#{cflags} -std=gnu11"
+        end
 
-      # Append -std=gnu++20 safely (only if needed)
-      cppflags = bc.build_settings['OTHER_CPLUSPLUSFLAGS']
-      if cppflags.nil?
-        bc.build_settings['OTHER_CPLUSPLUSFLAGS'] = ['$(inherited)', '-std=gnu++20']
-      elsif cppflags.is_a?(Array)
-        bc.build_settings['OTHER_CPLUSPLUSFLAGS'] = (cppflags + ['-std=gnu++20']).uniq
-      else # String
-        unless cppflags.include?('-std=gnu++20')
-          bc.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{cppflags} -std=gnu++20"
+        # C++20 (needed by Fabric/New Arch)
+        bc.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'
+        bc.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        bc.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+        cppflags = bc.build_settings['OTHER_CPLUSPLUSFLAGS']
+        if cppflags.nil?
+          bc.build_settings['OTHER_CPLUSPLUSFLAGS'] = ['$(inherited)', '-std=gnu++20']
+        elsif cppflags.is_a?(Array)
+          bc.build_settings['OTHER_CPLUSPLUSFLAGS'] = (cppflags + ['-std=gnu++20']).uniq
+        else # String
+          bc.build_settings['OTHER_CPLUSPLUSFLAGS'] = cppflags.include?('-std=gnu++20') ? cppflags : "#{cppflags} -std=gnu++20"
         end
       end
     end
   end
-
-
-
-  end
-  
-  
 end
