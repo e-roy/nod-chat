@@ -56,15 +56,5 @@ target 'nodchat' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
-  
-    # ---- RNFirebase frameworks: allow non-modular React headers ----
-    installer.pods_project.targets.each do |t|
-      if t.name.start_with?('RNFB') # e.g., RNFBApp, RNFBCrashlytics, etc.
-        t.build_configurations.each do |bc|
-          bc.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-        end
-      end
-    end
   end
-  
 end
