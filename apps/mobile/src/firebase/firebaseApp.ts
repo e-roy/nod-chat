@@ -12,8 +12,7 @@ let emulatorsConnected = false;
 // For development mode, we need to connect to emulators BEFORE any operations
 if (isDevelopment) {
   try {
-    // For Expo Go, we need to use the development machine's IP address
-    // Try to get the IP from environment variable or default
+    // For Expo, we need to use the development machine's IP address
     let emulatorHost = process.env.EXPO_PUBLIC_EMULATOR_HOST;
 
     if (!emulatorHost) {
@@ -39,7 +38,7 @@ if (isDevelopment) {
     emulatorsConnected = true;
   } catch (error) {
     console.error('Could not connect to Firebase emulators:', error);
-    console.error('Make sure emulators are running with: pnpm emulators');
+    console.error('Make sure emulators are running with: yarn emulators');
   }
 }
 

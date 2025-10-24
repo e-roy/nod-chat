@@ -12,7 +12,7 @@
     "infra/*"
   ],
   "scripts": {
-    "dev": "yarn workspace @chatapp/mobile dev",
+    "dev": "yarn workspace @chatapp/mobile dev:client",
     "dev:tunnel": "yarn workspace @chatapp/mobile start --port 8082",
     "lint": "yarn workspaces run lint",
     "typecheck": "yarn workspaces run typecheck",
@@ -23,6 +23,9 @@
     "emulators": "firebase emulators:start",
     "emulators:auth": "firebase emulators:start --only auth",
     "emulators:firestore": "firebase emulators:start --only firestore",
+    "dev:all": "concurrently \"yarn emulators\" \"yarn workspace @chatapp/mobile dev:client\"",
+    "emulators:start": "./scripts/start-emulators.sh",
+    "emulators:stop": "./scripts/stop-emulators.sh",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },

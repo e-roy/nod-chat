@@ -11,6 +11,22 @@
         "NODE_ENV": "development"
       },
       "ios": {
+        "resourceClass": "m-medium",
+        "simulator": true,
+        "buildConfiguration": "Debug"
+      },
+      "android": {
+        "resourceClass": "medium",
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "ios": {
         "resourceClass": "m-medium"
       },
       "android": {
@@ -18,16 +34,10 @@
         "buildType": "apk"
       }
     },
-    "preview": {
-      "distribution": "internal",
-      "ios": {
-        "resourceClass": "m-medium"
-      },
-      "android": {
-        "resourceClass": "medium"
-      }
-    },
     "production": {
+      "env": {
+        "NODE_ENV": "production"
+      },
       "ios": {
         "resourceClass": "m-medium"
       },
@@ -37,6 +47,16 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "your-app-store-connect-app-id",
+        "appleTeamId": "your-team-id"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./path-to-service-account.json",
+        "track": "internal"
+      }
+    }
   }
 }

@@ -13,11 +13,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     resizeMode: 'contain',
     backgroundColor: '#ffffff',
   },
+  newArchEnabled: true,
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
+    bundleIdentifier: 'com.fullstackeric.message-ai',
+    googleServicesFile: process.env.GOOGLE_SERVICES_PLIST || './GoogleService-Info.plist',
     infoPlist: {
       UIBackgroundModes: ['remote-notification'],
+      "ITSAppUsesNonExemptEncryption": false
     },
   },
   android: {
@@ -31,7 +35,28 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     favicon: './assets/favicon.png',
   },
-  plugins: ['@react-native-firebase/app', '@react-native-firebase/messaging'],
+      plugins: [
+        [
+          'expo-build-properties',
+          {
+            ios: {
+              useFrameworks: 'static',
+              podfileProperties: {
+                'RNFirebaseAsStaticFramework': true
+              }
+            }
+          }
+        ],
+        [
+          '@react-native-firebase/app',
+          {
+            ios: {
+              useFrameworks: 'static'
+            }
+          }
+        ],
+        '@react-native-firebase/messaging'
+      ],
   extra: {
     firebase: {
       apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',

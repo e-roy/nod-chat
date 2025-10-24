@@ -1,3 +1,9 @@
+# Firebase configuration files (contain sensitive API keys)
+google-services.json
+GoogleService-Info.plist
+**/google-services.json
+**/GoogleService-Info.plist
+
 # Dependencies
 node_modules/
 **/node_modules/
@@ -152,7 +158,7 @@ firebase-debug.*.log
 
 
 # plist files
-**/*.plist
+# **/*.plist
 
 
 

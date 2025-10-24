@@ -1,0 +1,21 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by akka.util.Unsafe (file:/Users/macmini/.cache/firebase/emulators/firebase-database-emulator-v4.11.2.jar)
+WARNING: Please consider reporting this to the maintainers of class akka.util.Unsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+12:33:48.978 [NamespaceSystem-akka.actor.default-dispatcher-4] INFO akka.event.slf4j.Slf4jLogger - Slf4jLogger started
+12:33:49.126 [main] INFO com.firebase.server.forge.App$ - Listening at 0.0.0.0:9000
+12:34:00.604 [NamespaceSystem-akka.actor.default-dispatcher-4] INFO com.firebase.core.namespace.NamespaceActor - fake-server successfully activated FBKV (SurveyIdle(0)) wait: 112ms, init: 0ms
+12:34:00.661 [NamespaceSystem-blocking-namespace-operation-dispatcher-6] INFO com.firebase.core.namespace.StateManager - Namespace fake-server status Active to Active
+12:34:00.689 [NamespaceSystem-blocking-namespace-operation-dispatcher-6] INFO com.firebase.core.namespace.StateManager - Namespace fake-server status Active to Active
+12:34:00.695 [NamespaceSystem-blocking-namespace-operation-dispatcher-6] INFO com.firebase.core.namespace.StateManager - Namespace fake-server status Active to Active
+12:34:00.701 [FirebaseWorkerPool-1-2] WARN com.firebase.core.persistence.backend.dummy.EmulatorMetadataPersistence - Multiple projectIds are not recommended in single project mode. Requested 
+namespace message-ai-b426b-default-rtdb, but the emulator is configured for fake-server. To 
+opt-out of single project mode add/set the singleProjectMode: false property in 
+the firebase.json emulators config. 
+12:34:00.704 [NamespaceSystem-akka.actor.default-dispatcher-5] INFO com.firebase.core.namespace.NamespaceActor - message-ai-b426b-default-rtdb successfully activated FBKV (SurveyIdle(0)) wait: 2ms, init: 0ms
+12:34:00.735 [NamespaceSystem-blocking-namespace-operation-dispatcher-6] INFO com.firebase.core.namespace.StateManager - Namespace message-ai-b426b-default-rtdb status Active to Active
+13:17:38.704 [Thread-0] INFO com.firebase.server.forge.App$ - Attempting graceful shutdown.
+13:17:38.717 [NamespaceSystem-akka.actor.default-dispatcher-12] INFO com.firebase.core.namespace.Terminator$Terminator - 2 actors left to terminate: fake-server, message-ai-b426b-default-rtdb
+13:17:38.727 [NamespaceSystem-akka.actor.default-dispatcher-15] INFO com.firebase.core.namespace.NamespaceActor - stopped namespace actor for message-ai-b426b-default-rtdb
+13:17:38.727 [NamespaceSystem-akka.actor.default-dispatcher-12] INFO com.firebase.core.namespace.NamespaceActor - stopped namespace actor for fake-server
+13:17:38.736 [Thread-0] INFO com.firebase.server.forge.App$ - Graceful shutdown complete.
