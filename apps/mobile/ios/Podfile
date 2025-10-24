@@ -50,27 +50,39 @@ target 'nodchat' do
   )
 
   post_install do |installer|
-    react_native_post_install(installer, config[:reactNativePath],
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
   
-    # Allow non-modular React headers only for RNFB* frameworks
+    # ---- RNFirebase frameworks: allow non-modular React headers ----
     installer.pods_project.targets.each do |t|
-      if t.name.start_with?('RNFB')
+      if t.name.start_with?('RNFB') # RNFBApp, RNFBMessaging, etc.
         t.build_configurations.each do |bc|
           bc.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
         end
       end
     end
   
-    # (Optional) normalize C/C++ standards if you previously saw implicit-int errors
+    # ---- Normalize C/C++ standards (New Arch uses C++20) ----
     installer.pods_project.targets.each do |t|
       t.build_configurations.each do |bc|
+        # C (for some pods)
         bc.build_settings['GCC_C_LANGUAGE_STANDARD'] = 'gnu11'
-        bc.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++17'
+  
+        # C++20 (fixes: 'concept', 'std::identity', 'std::bit_width', etc.)
+        bc.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'
+        # ensure libc++ (usually default, but set explicitly)
+        bc.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+  
+        # Some pods ignore the setting; force the flag as well:
+        flags = bc.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
+        bc.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{flags} -std=gnu++20"
       end
     end
   end
+  
   
 end
