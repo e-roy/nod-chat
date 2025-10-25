@@ -5,40 +5,22 @@ import {
   Platform,
   Image,
   TouchableOpacity,
-  ActivityIndicator,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { ImagePlus, Camera, Image as ImageIcon } from 'lucide-react-native';
 import { RootStackParamList } from '@/types/navigation';
 
-import { Button, ButtonText } from '@ui/button';
-import { Input, InputField } from '@ui/input';
 import { Avatar, AvatarFallbackText } from '@ui/avatar';
 import { Text } from '@ui/text';
 import { Box } from '@ui/box';
 import { VStack } from '@ui/vstack';
 import { HStack } from '@ui/hstack';
-import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicatorWrapper,
-  ActionsheetDragIndicator,
-  ActionsheetItem,
-  ActionsheetItemText,
-} from '@ui/actionsheet';
 import { useChatStore } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
 import { usePresenceStore } from '@/store/presence';
 import { ChatMessage } from '@chatapp/shared';
-import {
-  takePhoto,
-  pickImage,
-  uploadImage,
-  UploadProgress,
-} from '@/messaging/mediaUpload';
+import MessageInput from '@/components/MessageInput';
 
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
 
@@ -50,7 +32,6 @@ const ChatScreen: React.FC = () => {
     messages,
     sendMessage,
     loadMessages,
-    currentChatId,
     setCurrentChat,
     // TODO: Re-enable when typing indicators work
     // typingUsers,
@@ -60,10 +41,6 @@ const ChatScreen: React.FC = () => {
   const { userPresence } = usePresenceStore();
 
   const [messageText, setMessageText] = useState('');
-  const [showImagePicker, setShowImagePicker] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
-    null
-  );
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -117,38 +94,11 @@ const ChatScreen: React.FC = () => {
     // }
   };
 
-  const handleImageUpload = async (imageUri: string) => {
+  const handleImageUpload = async (imageUrl: string) => {
     try {
-      setUploadProgress({ bytesTransferred: 0, totalBytes: 100, progress: 0 });
-
-      // Upload image to Firebase Storage
-      const imageUrl = await uploadImage(chatId, imageUri, progress => {
-        setUploadProgress(progress);
-      });
-
-      // Send message with image URL
       await sendMessage(chatId, '', imageUrl);
-
-      setUploadProgress(null);
     } catch (error) {
-      console.error('Error uploading image:', error);
-      setUploadProgress(null);
-    }
-  };
-
-  const handleTakePhoto = async () => {
-    setShowImagePicker(false);
-    const uri = await takePhoto();
-    if (uri) {
-      await handleImageUpload(uri);
-    }
-  };
-
-  const handlePickImage = async () => {
-    setShowImagePicker(false);
-    const uri = await pickImage();
-    if (uri) {
-      await handleImageUpload(uri);
+      console.error('Error sending image message:', error);
     }
   };
 
@@ -326,76 +276,14 @@ const ChatScreen: React.FC = () => {
         />
 
         {/* Message Input */}
-        <HStack
-          className="items-center p-4 border-t border-neutral-200 dark:border-neutral-700 gap-2"
-          alignItems="center"
-        >
-          <Button
-            onPress={() => setShowImagePicker(true)}
-            size="md"
-            variant="outline"
-            className="px-3"
-          >
-            <ImagePlus size={20} color="#6B7280" />
-          </Button>
-          <Input className="flex-1">
-            <InputField
-              placeholder="Type a message..."
-              value={messageText}
-              onChangeText={handleTextChange}
-              multiline
-              maxLength={1000}
-            />
-          </Input>
-          <Button
-            onPress={handleSendMessage}
-            disabled={!messageText.trim()}
-            size="md"
-          >
-            <ButtonText>Send</ButtonText>
-          </Button>
-        </HStack>
-
-        {/* Upload Progress */}
-        {uploadProgress && (
-          <Box className="absolute bottom-24 left-4 right-4 bg-white dark:bg-neutral-800 p-4 rounded-lg shadow-lg">
-            <Text className="text-sm mb-2">
-              Uploading image... {Math.round(uploadProgress.progress)}%
-            </Text>
-            <Box className="h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
-              <Box
-                className="h-full bg-blue-500"
-                style={{ width: `${uploadProgress.progress}%` }}
-              />
-            </Box>
-          </Box>
-        )}
+        <MessageInput
+          chatId={chatId}
+          messageText={messageText}
+          onMessageTextChange={handleTextChange}
+          onSendMessage={handleSendMessage}
+          onImageUpload={handleImageUpload}
+        />
       </KeyboardAvoidingView>
-
-      {/* Image Picker Actionsheet */}
-      <Actionsheet
-        isOpen={showImagePicker}
-        onClose={() => setShowImagePicker(false)}
-      >
-        <ActionsheetBackdrop />
-        <ActionsheetContent>
-          <ActionsheetDragIndicatorWrapper>
-            <ActionsheetDragIndicator />
-          </ActionsheetDragIndicatorWrapper>
-          <ActionsheetItem onPress={handleTakePhoto}>
-            <HStack className="items-center gap-3" alignItems="center">
-              <Camera size={20} />
-              <ActionsheetItemText>Take Photo</ActionsheetItemText>
-            </HStack>
-          </ActionsheetItem>
-          <ActionsheetItem onPress={handlePickImage}>
-            <HStack className="items-center gap-3" alignItems="center">
-              <ImageIcon size={20} />
-              <ActionsheetItemText>Choose from Library</ActionsheetItemText>
-            </HStack>
-          </ActionsheetItem>
-        </ActionsheetContent>
-      </Actionsheet>
 
       {/* Full-Screen Image Viewer */}
       <Modal

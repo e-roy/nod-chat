@@ -1,33 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-} from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  NativeStackNavigationProp,
-  NativeStackScreenProps,
-} from '@react-navigation/native-stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 import { Avatar, AvatarImage, AvatarFallbackText } from '@ui/avatar';
 import { Box } from '@ui/box';
-import { Button, ButtonText } from '@ui/button';
 import { Text } from '@ui/text';
 import { HStack } from '@ui/hstack';
 import { VStack } from '@ui/vstack';
-import { Input } from '@ui/input';
-import { InputField } from '@ui/input';
 import { Spinner } from '@ui/spinner';
 
 import { useChatStore } from '@/store/chat';
 import { useGroupStore } from '@/store/groups';
 import { useAuthStore } from '@/store/auth';
-import { ChatMessage, Group, User } from '@chatapp/shared';
+import { ChatMessage, User } from '@chatapp/shared';
 import { RootStackParamList } from '@/types/navigation';
+import MessageInput from '@/components/MessageInput';
 
 import { db } from '@/firebase/firebaseApp';
 
@@ -37,8 +26,6 @@ type GroupChatScreenProps = NativeStackScreenProps<
 >;
 
 const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { groupId } = route.params;
 
   const {
@@ -46,7 +33,6 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
     sendMessage,
     loadMessages,
     markMessagesAsRead,
-    currentChatId,
     initializeTransport: initializeChatTransport,
   } = useChatStore();
   const { groups, initializeTransport } = useGroupStore();
@@ -131,6 +117,14 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
       console.error('Error sending message:', error);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleImageUpload = async (imageUrl: string) => {
+    try {
+      await sendMessage(groupId, '', imageUrl);
+    } catch (error) {
+      console.error('Error sending image message:', error);
     }
   };
 
@@ -278,26 +272,14 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
         />
 
         {/* Message Input */}
-        <Box className="p-4 border-t border-neutral-200 dark:border-neutral-700">
-          <HStack space="md" alignItems="center">
-            <Input className="flex-1">
-              <InputField
-                placeholder="Type a message..."
-                value={messageText}
-                onChangeText={setMessageText}
-                multiline
-                maxLength={1000}
-              />
-            </Input>
-            <Button
-              onPress={handleSendMessage}
-              isDisabled={!messageText.trim() || sending}
-              size="md"
-            >
-              <ButtonText>{sending ? 'Sending...' : 'Send'}</ButtonText>
-            </Button>
-          </HStack>
-        </Box>
+        <MessageInput
+          chatId={groupId}
+          messageText={messageText}
+          onMessageTextChange={setMessageText}
+          onSendMessage={handleSendMessage}
+          onImageUpload={handleImageUpload}
+          disabled={sending}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

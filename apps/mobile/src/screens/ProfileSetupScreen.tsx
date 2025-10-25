@@ -5,7 +5,6 @@ import { Button, ButtonText, ButtonSpinner } from '@ui/button';
 import { Input, InputField } from '@ui/input';
 import { Alert, AlertText } from '@ui/alert';
 import { Text } from '@ui/text';
-import { Box } from '@ui/box';
 import { VStack } from '@ui/vstack';
 
 import { useAuthStore } from '@/store/auth';
