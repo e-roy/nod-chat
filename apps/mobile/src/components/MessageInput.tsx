@@ -89,31 +89,31 @@ const MessageInput: React.FC<MessageInputProps> = ({
   return (
     <>
       <Box
-        className="px-4 py-3"
         style={{
+          paddingHorizontal: 16,
+          paddingVertical: 12,
           backgroundColor: colors.bg.primary,
           borderTopWidth: 1,
           borderTopColor: colors.border.default,
         }}
       >
-        <HStack className="items-center gap-3" alignItems="center">
+        <HStack space="md" alignItems="center">
           {/* Attachment icons */}
-          <HStack className="items-center gap-2" alignItems="center">
+          <HStack space="sm" alignItems="center">
             <TouchableOpacity
               onPress={() => setShowImagePicker(true)}
               disabled={disabled}
             >
-              <Box className="p-2 rounded-full">
-                <ImagePlus size={22} color={colors.text.secondary} />
+              <Box style={{ padding: 8, borderRadius: 20 }}>
+                <Box>
+                  <ImagePlus size={22} color={colors.text.secondary} />
+                </Box>
               </Box>
             </TouchableOpacity>
           </HStack>
 
           {/* Message input */}
-          <Input
-            className="flex-1 border-0"
-            style={{ backgroundColor: colors.bg.secondary }}
-          >
+          <Input style={{ flex: 1, backgroundColor: colors.bg.secondary }}>
             <InputField
               placeholder="Write a message"
               value={messageText}
@@ -121,7 +121,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
               multiline
               maxLength={1000}
               editable={!disabled}
-              className="text-sm"
+              style={{ fontSize: 14 }}
             />
           </Input>
 
@@ -131,8 +131,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
             disabled={!messageText.trim() || disabled}
           >
             <Box
-              className="p-2 rounded-full"
               style={{
+                padding: 8,
+                borderRadius: 20,
                 backgroundColor:
                   messageText.trim() && !disabled
                     ? isDark
@@ -141,14 +142,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
                     : colors.bg.secondary,
               }}
             >
-              <Send
-                size={20}
-                color={
-                  messageText.trim() && !disabled
-                    ? '#ffffff'
-                    : colors.text.muted
-                }
-              />
+              <Box>
+                <Send
+                  size={20}
+                  color={
+                    messageText.trim() && !disabled
+                      ? '#ffffff'
+                      : colors.text.muted
+                  }
+                />
+              </Box>
             </Box>
           </TouchableOpacity>
         </HStack>
@@ -157,8 +160,15 @@ const MessageInput: React.FC<MessageInputProps> = ({
       {/* Upload Progress */}
       {uploadProgress && (
         <Box
-          className="absolute bottom-24 left-4 right-4 p-4 rounded-lg shadow-lg"
-          style={{ backgroundColor: colors.bg.secondary }}
+          style={{
+            position: 'absolute',
+            bottom: 96,
+            left: 16,
+            right: 16,
+            padding: 16,
+            borderRadius: 8,
+            backgroundColor: colors.bg.secondary,
+          }}
         >
           <RNText
             style={[
@@ -169,12 +179,19 @@ const MessageInput: React.FC<MessageInputProps> = ({
             Uploading image... {Math.round(uploadProgress.progress)}%
           </RNText>
           <Box
-            className="h-2 rounded-full overflow-hidden"
-            style={{ backgroundColor: colors.bg.muted }}
+            style={{
+              height: 8,
+              borderRadius: 4,
+              overflow: 'hidden',
+              backgroundColor: colors.bg.muted,
+            }}
           >
             <Box
-              className="h-full bg-blue-500"
-              style={{ width: `${uploadProgress.progress}%` }}
+              style={{
+                height: '100%',
+                backgroundColor: '#3b82f6',
+                width: `${uploadProgress.progress}%`,
+              }}
             />
           </Box>
         </Box>
@@ -191,14 +208,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
             <ActionsheetDragIndicator />
           </ActionsheetDragIndicatorWrapper>
           <ActionsheetItem onPress={handleTakePhoto}>
-            <HStack className="items-center gap-3" alignItems="center">
-              <Camera size={20} />
+            <HStack space="md" alignItems="center">
+              <Box>
+                <Camera size={20} />
+              </Box>
               <ActionsheetItemText>Take Photo</ActionsheetItemText>
             </HStack>
           </ActionsheetItem>
           <ActionsheetItem onPress={handlePickImage}>
-            <HStack className="items-center gap-3" alignItems="center">
-              <ImageIcon size={20} />
+            <HStack space="md" alignItems="center">
+              <Box>
+                <ImageIcon size={20} />
+              </Box>
               <ActionsheetItemText>Choose from Library</ActionsheetItemText>
             </HStack>
           </ActionsheetItem>

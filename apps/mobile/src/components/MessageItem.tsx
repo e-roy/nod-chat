@@ -14,6 +14,10 @@ import { ChatMessage } from '@chatapp/shared';
 import { useThemeStore } from '@/store/theme';
 import { getColors } from '@/utils/colors';
 
+const COLORS = {
+  GREEN: '#10b981',
+} as const;
+
 interface ReadByUser {
   uid: string;
   displayName?: string;
@@ -56,15 +60,35 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
     switch (status) {
       case 'sending':
-        return <Clock size={iconSize} color={iconColor} />;
+        return (
+          <Box>
+            <Clock size={iconSize} color={iconColor} />
+          </Box>
+        );
       case 'sent':
-        return <Check size={iconSize} color={iconColor} />;
+        return (
+          <Box>
+            <Check size={iconSize} color={iconColor} />
+          </Box>
+        );
       case 'delivered':
-        return <CheckCheck size={iconSize} color={iconColor} />;
+        return (
+          <Box>
+            <CheckCheck size={iconSize} color={iconColor} />
+          </Box>
+        );
       case 'read':
-        return <CheckCheck size={iconSize} color={iconColor} />;
+        return (
+          <Box>
+            <CheckCheck size={iconSize} color={iconColor} />
+          </Box>
+        );
       case 'failed':
-        return <AlertCircle size={iconSize} color={colors.error} />;
+        return (
+          <Box>
+            <AlertCircle size={iconSize} color={colors.error} />
+          </Box>
+        );
       default:
         return null;
     }
@@ -84,9 +108,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
     : colors.text.muted;
 
   return (
-    <HStack className="mb-4 px-4" space="sm">
+    <HStack style={styles.container} space="sm">
       {/* Left side: Avatar with online indicator or spacer */}
-      <Box style={{ width: 32 }} className="relative">
+      <Box style={styles.avatarContainer}>
         {showAvatar && (
           <>
             <Avatar size="sm">
@@ -99,8 +123,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
             {/* Online indicator */}
             {isOnline && (
               <Box
-                className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500"
-                style={{ borderWidth: 2, borderColor: colors.bg.primary }}
+                style={[
+                  styles.onlineIndicator,
+                  { borderColor: colors.bg.primary },
+                ]}
               />
             )}
           </>
@@ -108,14 +134,19 @@ const MessageItem: React.FC<MessageItemProps> = ({
       </Box>
 
       {/* Message content - takes up remaining width */}
-      <VStack className="flex-1" space="xs">
+      <VStack flex={1} space="xs">
         {/* Message bubble with name, time, and content inside */}
         <Box
-          className={`${hasImage ? 'p-2' : 'px-3 py-2'} rounded-lg self-start w-full`}
-          style={{ backgroundColor: bubbleBackgroundColor }}
+          style={[
+            styles.messageBubble,
+            {
+              padding: hasImage ? 8 : 12,
+              backgroundColor: bubbleBackgroundColor,
+            },
+          ]}
         >
           {/* Sender name and timestamp inside bubble */}
-          <HStack className="items-center gap-2 mb-1" alignItems="center">
+          <HStack space="sm" alignItems="center">
             <RNText style={[styles.senderName, { color: textColor }]}>
               {senderName}
             </RNText>
@@ -154,15 +185,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
         {/* Read indicators outside bubble at bottom right */}
         {isOwnMessage && message.status !== 'failed' && (
-          <HStack
-            className="items-center justify-end gap-1"
-            alignItems="center"
-            justifyContent="end"
-          >
+          <HStack space="xs" alignItems="center" justifyContent="end">
             {isGroupChat ? (
               // Group chat: Show avatars of users who have read the message
               readByUsers.length > 0 ? (
-                <HStack className="items-center gap-0.5" space="xs">
+                <HStack space="xs" alignItems="center">
                   {readByUsers.slice(0, 3).map(user => (
                     <Avatar key={user.uid} size="xs">
                       {user.photoURL ? (
@@ -198,8 +225,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
         {/* Failed message retry button outside bubble */}
         {isOwnMessage && message.status === 'failed' && (
           <TouchableOpacity onPress={() => onRetry(message.id)}>
-            <HStack className="items-center gap-1" alignItems="center">
-              <AlertCircle size={14} color={colors.error} />
+            <HStack space="xs" alignItems="center">
+              <Box>
+                <AlertCircle size={14} color={colors.error} />
+              </Box>
               <RNText style={[styles.failedText, { color: colors.error }]}>
                 Failed to send. Tap to retry
               </RNText>
@@ -212,6 +241,29 @@ const MessageItem: React.FC<MessageItemProps> = ({
 };
 
 const styles = StyleSheet.create({
+  container: {
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  avatarContainer: {
+    width: 32,
+    position: 'relative',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.GREEN,
+    borderWidth: 2,
+  },
+  messageBubble: {
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    width: '100%',
+  },
   senderName: {
     fontSize: 14,
     fontWeight: '600',

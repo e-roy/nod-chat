@@ -31,7 +31,9 @@ const ParticipantName: React.FC<{
   chat: Chat;
   user: { uid: string } | null;
   getUserDisplayName: (userId: string) => Promise<string>;
-  colors: any;
+  colors: {
+    text: { primary: string };
+  };
 }> = ({ chat, user, getUserDisplayName, colors }) => {
   const [displayName, setDisplayName] = useState<string>('Loading...');
 
@@ -128,14 +130,15 @@ const ChatItem: React.FC<ChatItemProps> = ({
   return (
     <TouchableOpacity onPress={handleChatPress}>
       <HStack
-        className="px-4 py-4"
-        alignItems="center"
         style={{
+          paddingHorizontal: 16,
+          paddingVertical: 16,
           borderBottomWidth: 1,
           borderBottomColor: colors.border.default,
         }}
+        alignItems="center"
       >
-        <Box className="relative mr-3">
+        <Box style={{ marginRight: 12 }}>
           <Avatar size="md">
             {otherParticipant && userPhotoURLs.has(otherParticipant) ? (
               <AvatarImage
@@ -156,8 +159,9 @@ const ChatItem: React.FC<ChatItemProps> = ({
 
         <VStack flex={1}>
           <HStack
-            className="justify-between items-center mb-1"
+            justifyContent="between"
             alignItems="center"
+            style={{ marginBottom: 4 }}
           >
             <ParticipantName
               chat={chat}
@@ -170,7 +174,7 @@ const ChatItem: React.FC<ChatItemProps> = ({
             </RNText>
           </HStack>
 
-          <HStack className="items-center gap-1" alignItems="center">
+          <HStack space="xs" alignItems="center">
             <RNText
               style={[styles.message, { color: colors.text.muted }]}
               numberOfLines={2}

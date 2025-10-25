@@ -38,8 +38,8 @@ const GroupItem: React.FC<GroupItemProps> = ({ group }) => {
   return (
     <Pressable onPress={handleGroupPress}>
       <Box
-        className="p-4"
         style={{
+          padding: 16,
           borderBottomWidth: 1,
           borderBottomColor: colors.border.default,
         }}

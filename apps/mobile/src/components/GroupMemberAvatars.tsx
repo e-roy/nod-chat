@@ -20,7 +20,7 @@ const GroupMemberAvatars: React.FC<GroupMemberAvatarsProps> = ({
   memberIds,
   size = 'sm',
   maxDisplay = 4,
-  overlap = 20,
+  overlap = 32,
 }) => {
   const [userCache, setUserCache] = useState<Map<string, User>>(new Map());
   const { isDark } = useThemeStore();

@@ -8,7 +8,7 @@ export type RootStackParamList = {
     participantName?: string;
   };
   NewChat: undefined;
-  ProfileSetup: undefined;
+  ProfileEdit: undefined;
   GroupChat: {
     groupId: string;
   };

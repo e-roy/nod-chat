@@ -46,7 +46,12 @@ const GroupListScreen = () => {
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.bg.primary }]}
       >
-        <VStack className="flex-1 justify-center items-center p-4">
+        <VStack
+          flex={1}
+          justifyContent="center"
+          alignItems="center"
+          style={{ padding: 16 }}
+        >
           <RNText style={[styles.errorText, { color: colors.error }]}>
             {error}
           </RNText>
@@ -61,14 +66,20 @@ const GroupListScreen = () => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
+      edges={['left', 'right', 'bottom']}
     >
       <FlatList
         data={groups}
         keyExtractor={item => item.id}
         renderItem={renderGroupItem}
-        className="flex-1"
+        style={{ flex: 1 }}
         ListEmptyComponent={
-          <VStack className="flex-1 justify-center items-center p-8">
+          <VStack
+            flex={1}
+            justifyContent="center"
+            alignItems="center"
+            style={{ padding: 32 }}
+          >
             <RNText
               style={[styles.emptyTitle, { color: colors.text.secondary }]}
             >

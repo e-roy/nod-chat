@@ -169,8 +169,13 @@ const ChatListScreen: React.FC = () => {
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.bg.primary }]}
       >
-        <VStack className="flex-1 justify-center items-center p-4">
-          <VStack className="items-center gap-4">
+        <VStack
+          flex={1}
+          justifyContent="center"
+          alignItems="center"
+          style={{ padding: 16 }}
+        >
+          <VStack space="lg" alignItems="center">
             <RNText style={[styles.errorText, { color: colors.error }]}>
               {error}
             </RNText>
@@ -186,10 +191,16 @@ const ChatListScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
+      edges={['left', 'right', 'bottom']}
     >
       {chats.length === 0 ? (
-        <VStack className="flex-1 justify-center items-center p-4">
-          <VStack className="items-center gap-4">
+        <VStack
+          flex={1}
+          justifyContent="center"
+          alignItems="center"
+          style={{ padding: 16 }}
+        >
+          <VStack space="lg" alignItems="center">
             <RNText
               style={[styles.emptyTitle, { color: colors.text.secondary }]}
             >
@@ -207,7 +218,7 @@ const ChatListScreen: React.FC = () => {
           data={chats}
           keyExtractor={item => item.id}
           renderItem={renderChatItem}
-          className="flex-1"
+          style={{ flex: 1 }}
         />
       )}
     </SafeAreaView>

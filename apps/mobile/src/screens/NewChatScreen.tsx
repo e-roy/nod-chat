@@ -35,7 +35,7 @@ const NewChatScreen: React.FC = () => {
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.bg.primary }]}
       >
-        <VStack className="flex-1 justify-center items-center">
+        <VStack flex={1} justifyContent="center" alignItems="center">
           <RNText style={{ color: colors.text.primary }}>Loading...</RNText>
         </VStack>
       </SafeAreaView>
@@ -48,7 +48,12 @@ const NewChatScreen: React.FC = () => {
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.bg.primary }]}
       >
-        <VStack className="flex-1 justify-center items-center p-4">
+        <VStack
+          flex={1}
+          justifyContent="center"
+          alignItems="center"
+          style={{ padding: 16 }}
+        >
           <RNText style={[styles.errorText, { color: colors.error }]}>
             Not authenticated
           </RNText>
@@ -112,9 +117,9 @@ const NewChatScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
     >
-      <VStack className="flex-1 p-4">
-        <VStack className="space-y-6">
-          <VStack className="space-y-2">
+      <VStack flex={1} style={{ padding: 16 }}>
+        <VStack space="lg">
+          <VStack space="sm">
             <RNText style={[styles.title, { color: colors.text.primary }]}>
               Start New Chat
             </RNText>
@@ -123,7 +128,7 @@ const NewChatScreen: React.FC = () => {
             </RNText>
           </VStack>
 
-          <VStack className="space-y-4">
+          <VStack space="md">
             <Input>
               <InputField
                 placeholder="Enter user ID or email"
@@ -149,7 +154,7 @@ const NewChatScreen: React.FC = () => {
           </VStack>
         </VStack>
 
-        <Box className="flex-1" />
+        <Box style={{ flex: 1 }} />
 
         <Button variant="outline" onPress={() => navigation.goBack()}>
           <ButtonText>Cancel</ButtonText>

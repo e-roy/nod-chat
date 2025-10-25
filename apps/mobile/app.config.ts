@@ -27,8 +27,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: 'ChatApp',
-    slug: 'chatapp',
+    name: 'MessageAI',
+    slug: 'messageai',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -41,14 +41,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     assetBundlePatterns: ['**/*'],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.chatapp.mobile',
+      bundleIdentifier: 'com.messageai.mobile',
     },
     android: {
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
-      package: 'com.chatapp.mobile',
+      package: 'com.messageai.mobile',
       googleServicesFile: './GoogleService-Info.plist',
     },
     web: {

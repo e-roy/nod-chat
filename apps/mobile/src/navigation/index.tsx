@@ -8,6 +8,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MessageCircle, Users, Settings, Plus } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
+import { Box } from '@ui/box';
 
 import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
@@ -26,7 +27,7 @@ import ChatListScreen from '@/screens/ChatListScreen';
 import ChatScreen from '@/screens/ChatScreen';
 import NewChatScreen from '@/screens/NewChatScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
-import ProfileSetupScreen from '@/screens/ProfileSetupScreen';
+import ProfileEditScreen from '@/screens/ProfileEditScreen';
 import GroupListScreen from '@/screens/GroupListScreen';
 import GroupChatScreen from '@/screens/GroupChatScreen';
 import GroupCreateScreen from '@/screens/GroupCreateScreen';
@@ -45,7 +46,9 @@ const NewChatButton = () => {
       accessibilityLabel="Create new chat"
       accessibilityRole="button"
     >
-      <Plus size={24} color={colors.headerTitle} />
+      <Box>
+        <Plus size={24} color={colors.headerTitle} />
+      </Box>
     </TouchableOpacity>
   );
 };
@@ -61,7 +64,9 @@ const CreateGroupButton = () => {
       accessibilityLabel="Create new group"
       accessibilityRole="button"
     >
-      <Plus size={24} color={colors.headerTitle} />
+      <Box>
+        <Plus size={24} color={colors.headerTitle} />
+      </Box>
     </TouchableOpacity>
   );
 };
@@ -105,7 +110,9 @@ const MainTabs = () => {
         options={{
           title: 'Chats',
           tabBarIcon: ({ color, size }) => (
-            <MessageCircle size={size} color={color} />
+            <Box>
+              <MessageCircle size={size} color={color} />
+            </Box>
           ),
           tabBarAccessibilityLabel: 'Chats tab',
           headerTitle: 'Messages',
@@ -117,7 +124,11 @@ const MainTabs = () => {
         component={GroupListScreen}
         options={{
           title: 'Groups',
-          tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Box>
+              <Users size={size} color={color} />
+            </Box>
+          ),
           tabBarAccessibilityLabel: 'Groups tab',
           headerTitle: 'Groups',
           headerRight: () => <CreateGroupButton />,
@@ -129,7 +140,9 @@ const MainTabs = () => {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <Settings size={size} color={color} />
+            <Box>
+              <Settings size={size} color={color} />
+            </Box>
           ),
           tabBarAccessibilityLabel: 'Settings tab',
           headerTitle: 'Settings',
@@ -257,10 +270,10 @@ const AppNavigator = () => {
                 }}
               />
               <Stack.Screen
-                name="ProfileSetup"
-                component={ProfileSetupScreen}
+                name="ProfileEdit"
+                component={ProfileEditScreen}
                 options={{
-                  title: 'Complete Profile',
+                  title: 'Edit Profile',
                   headerShown: true,
                   presentation: 'modal',
                 }}

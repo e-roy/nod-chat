@@ -1,6 +1,6 @@
 # 🧭 Product Requirements Document (PRD)
 
-**Project:** ChatApp (WhatsApp Clone MVP)
+**Project:** MessageAI (Messaging App MVP)
 **Tech Stack (Phase 1):** Expo (React Native) + Firebase (Auth, Firestore, FCM)
 **Future Pivot:** Add ejabberd (XMPP Server) for scalable messaging core
 **Deadline:** 24 hours for functional MVP
@@ -69,7 +69,6 @@ The MVP must run on local emulator / Expo Go and include core chat features, mes
 - When recipient opens chat, mark `status = read` for their incoming messages.
 - Cloud Function or client writes update sender’s view via Firestore listener.
 - Local states:
-
   - _sending_ — optimistic message queued.
   - _sent_ — write confirmed to Firestore.
   - _delivered_ — recipient synced message.

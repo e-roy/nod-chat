@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ChatApp",
-    "slug": "chatapp",
+    "name": "MessageAI",
+    "slug": "messageai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

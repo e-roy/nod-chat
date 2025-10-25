@@ -205,10 +205,10 @@ const ChatScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
-      edges={['top']}
+      edges={['left', 'right', 'bottom']}
     >
       <KeyboardAvoidingView
-        className="flex-1"
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Connection Status Banner */}

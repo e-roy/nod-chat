@@ -7,6 +7,11 @@ service firebase.storage {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Users can upload and read their own avatars
+    match /avatars/{userId}/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
     // Users can upload and read media in chats they participate in
     match /chats/{chatId}/media/{fileName} {
       allow read, write: if request.auth != null && 

@@ -223,7 +223,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.bg.primary }]}
       >
-        <VStack className="flex-1 justify-center items-center">
+        <VStack flex={1} justifyContent="center" alignItems="center">
           <Spinner size="large" />
           <RNText
             style={[styles.loadingText, { color: colors.text.secondary }]}
@@ -238,10 +238,10 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
-      edges={['top']}
+      edges={['left', 'right', 'bottom']}
     >
       <KeyboardAvoidingView
-        className="flex-1"
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Group Header */}
@@ -252,7 +252,11 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
             borderBottomColor: colors.border.default,
           }}
         >
-          <HStack className="px-4 py-3" space="md" alignItems="center">
+          <HStack
+            style={{ paddingHorizontal: 16, paddingVertical: 12 }}
+            space="md"
+            alignItems="center"
+          >
             <GroupMemberAvatars
               memberIds={group.members}
               size="sm"
@@ -290,7 +294,12 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
             flatListRef.current?.scrollToEnd({ animated: true })
           }
           ListEmptyComponent={
-            <VStack className="flex-1 justify-center items-center p-8">
+            <VStack
+              flex={1}
+              justifyContent="center"
+              alignItems="center"
+              style={{ padding: 32 }}
+            >
               <RNText
                 style={[styles.emptyTitle, { color: colors.text.secondary }]}
               >

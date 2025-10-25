@@ -3,6 +3,7 @@ export interface User {
   email: string;
   displayName?: string;
   photoURL?: string;
+  statusMessage?: string;
   online: boolean;
   lastSeen?: number; // timestamp in ms
   createdAt: number; // timestamp in ms

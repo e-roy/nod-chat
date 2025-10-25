@@ -112,8 +112,13 @@ const AuthScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
     >
-      <VStack className="flex-1 justify-center px-6 space-y-6">
-        <VStack className="items-center space-y-2">
+      <VStack
+        flex={1}
+        justifyContent="center"
+        style={{ paddingHorizontal: 24 }}
+        space="lg"
+      >
+        <VStack space="sm" alignItems="center">
           <RNText style={[styles.title, { color: colors.text.primary }]}>
             {isSignUp ? 'Create Account' : 'Welcome Back'}
           </RNText>
@@ -124,7 +129,7 @@ const AuthScreen: React.FC = () => {
           </RNText>
         </VStack>
 
-        <VStack className="space-y-4">
+        <VStack space="md">
           {/* Error Messages */}
           {validationError && (
             <Alert action="error" variant="outline">
@@ -193,10 +198,10 @@ const AuthScreen: React.FC = () => {
             action="primary"
             onPress={handleAuth}
             disabled={loading}
-            className="min-h-[48px]"
+            style={{ minHeight: 48 }}
           >
             {loading ? (
-              <HStack className="items-center space-x-2">
+              <HStack space="sm" alignItems="center">
                 <Spinner size="small" color="$white" />
                 <ButtonText>
                   {isSignUp ? 'Creating Account...' : 'Signing In...'}
@@ -208,7 +213,7 @@ const AuthScreen: React.FC = () => {
           </Button>
         </VStack>
 
-        <HStack className="justify-center items-center space-x-2">
+        <HStack space="sm" alignItems="center" justifyContent="center">
           <RNText style={[styles.switchText, { color: colors.text.secondary }]}>
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
           </RNText>
