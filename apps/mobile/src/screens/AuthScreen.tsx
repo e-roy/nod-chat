@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Text as RNText, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Input, InputField } from '@ui/input';
 import { Button, ButtonText } from '@ui/button';
 import { Alert, AlertText } from '@ui/alert';
-import { Text } from '@ui/text';
 import { Spinner } from '@ui/spinner';
 
 import { VStack } from '@ui/vstack';
 import { HStack } from '@ui/hstack';
 
 import { useAuthStore } from '@/store/auth';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 
 // Helper function to convert Firebase error codes to user-friendly messages
 const getErrorMessage = (errorCode: string): string => {
@@ -48,6 +50,8 @@ const AuthScreen: React.FC = () => {
   const [authError, setAuthError] = useState('');
 
   const { signUp, signIn, error, clearError } = useAuthStore();
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
 
   // Clear all errors when switching between sign in/up
   const clearAllErrors = () => {
@@ -105,17 +109,19 @@ const AuthScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.bg.primary }]}
+    >
       <VStack className="flex-1 justify-center px-6 space-y-6">
         <VStack className="items-center space-y-2">
-          <Text className="text-3xl font-bold text-center">
+          <RNText style={[styles.title, { color: colors.text.primary }]}>
             {isSignUp ? 'Create Account' : 'Welcome Back'}
-          </Text>
-          <Text className="text-base text-center text-neutral-600 dark:text-neutral-300">
+          </RNText>
+          <RNText style={[styles.subtitle, { color: colors.text.secondary }]}>
             {isSignUp
               ? 'Sign up to start chatting with friends'
               : 'Sign in to continue chatting'}
-          </Text>
+          </RNText>
         </VStack>
 
         <VStack className="space-y-4">
@@ -203,9 +209,9 @@ const AuthScreen: React.FC = () => {
         </VStack>
 
         <HStack className="justify-center items-center space-x-2">
-          <Text className="text-base text-neutral-600 dark:text-neutral-300">
+          <RNText style={[styles.switchText, { color: colors.text.secondary }]}>
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-          </Text>
+          </RNText>
           <Button
             onPress={() => {
               setIsSignUp(!isSignUp);
@@ -224,5 +230,23 @@ const AuthScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  switchText: {
+    fontSize: 16,
+  },
+});
 
 export default AuthScreen;

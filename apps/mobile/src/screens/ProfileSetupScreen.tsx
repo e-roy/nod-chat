@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { Text as RNText, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, ButtonText, ButtonSpinner } from '@ui/button';
 import { Input, InputField } from '@ui/input';
 import { Alert, AlertText } from '@ui/alert';
-import { Text } from '@ui/text';
 import { VStack } from '@ui/vstack';
 
 import { useAuthStore } from '@/store/auth';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 
 const ProfileSetupScreen: React.FC = () => {
   const [displayName, setDisplayName] = useState('');
@@ -15,6 +17,8 @@ const ProfileSetupScreen: React.FC = () => {
   const [validationError, setValidationError] = useState('');
 
   const { updateProfile } = useAuthStore();
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
 
   const handleCompleteProfile = async () => {
     if (!displayName.trim()) {
@@ -35,13 +39,17 @@ const ProfileSetupScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.bg.primary }]}
+    >
       <VStack className="flex-1 px-6 pt-4">
         <VStack className="mb-6 space-y-2">
-          <Text className="text-3xl font-bold">Complete Your Profile</Text>
-          <Text className="text-base text-neutral-600 dark:text-neutral-300">
+          <RNText style={[styles.title, { color: colors.text.primary }]}>
+            Complete Your Profile
+          </RNText>
+          <RNText style={[styles.subtitle, { color: colors.text.secondary }]}>
             Let's set up your profile to get started
-          </Text>
+          </RNText>
         </VStack>
 
         <VStack className="flex-1 space-y-6">
@@ -52,7 +60,9 @@ const ProfileSetupScreen: React.FC = () => {
           )}
 
           <VStack className="space-y-2">
-            <Text className="text-base font-semibold">Display Name</Text>
+            <RNText style={[styles.label, { color: colors.text.primary }]}>
+              Display Name
+            </RNText>
             <Input>
               <InputField
                 placeholder="Enter your display name"
@@ -77,5 +87,22 @@ const ProfileSetupScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  subtitle: {
+    fontSize: 16,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
 
 export default ProfileSetupScreen;

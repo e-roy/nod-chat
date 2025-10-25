@@ -3,9 +3,11 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallbackText } from '@ui/avatar';
 import { Box } from '@ui/box';
 import { HStack } from '@ui/hstack';
-import { Text } from '@ui/text';
+import { Text as RNText } from 'react-native';
 import { db } from '@/firebase/firebaseApp';
 import { User } from '@chatapp/shared';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 
 interface GroupMemberAvatarsProps {
   memberIds: string[];
@@ -21,6 +23,8 @@ const GroupMemberAvatars: React.FC<GroupMemberAvatarsProps> = ({
   overlap = 20,
 }) => {
   const [userCache, setUserCache] = useState<Map<string, User>>(new Map());
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -75,7 +79,7 @@ const GroupMemberAvatars: React.FC<GroupMemberAvatarsProps> = ({
               marginLeft: index > 0 ? -overlap : 0,
               zIndex: displayMembers.length - index,
               borderWidth: 2,
-              borderColor: 'white',
+              borderColor: colors.bg.primary,
             }}
           >
             {member?.photoURL ? (
@@ -88,12 +92,22 @@ const GroupMemberAvatars: React.FC<GroupMemberAvatarsProps> = ({
       })}
       {remainingCount > 0 && (
         <Box
-          className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 items-center justify-center"
-          style={{ marginLeft: -overlap + 12, zIndex: 0 }}
+          className="w-8 h-8 rounded-full items-center justify-center"
+          style={{
+            marginLeft: -overlap + 12,
+            zIndex: 0,
+            backgroundColor: colors.bg.secondary,
+          }}
         >
-          <Text className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+          <RNText
+            style={{
+              fontSize: 12,
+              fontWeight: '600',
+              color: colors.text.primary,
+            }}
+          >
             +{remainingCount}
-          </Text>
+          </RNText>
         </Box>
       )}
     </HStack>

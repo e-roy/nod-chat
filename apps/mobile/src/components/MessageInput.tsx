@@ -5,7 +5,7 @@ import {
   Send,
   Image as ImageIcon,
 } from 'lucide-react-native';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, Text as RNText, StyleSheet } from 'react-native';
 import {
   Actionsheet,
   ActionsheetBackdrop,
@@ -18,13 +18,14 @@ import {
 import { Input, InputField } from '@ui/input';
 import { HStack } from '@ui/hstack';
 import { Box } from '@ui/box';
-import { Text } from '@ui/text';
 import {
   takePhoto,
   pickImage,
   uploadImage,
   UploadProgress,
 } from '@/messaging/mediaUpload';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 
 interface MessageInputProps {
   chatId: string;
@@ -47,6 +48,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
     null
   );
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
 
   const handleImageUpload = async (imageUri: string) => {
     try {
@@ -85,7 +88,14 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <>
-      <Box className="bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 px-4 py-3">
+      <Box
+        className="px-4 py-3"
+        style={{
+          backgroundColor: colors.bg.primary,
+          borderTopWidth: 1,
+          borderTopColor: colors.border.default,
+        }}
+      >
         <HStack className="items-center gap-3" alignItems="center">
           {/* Attachment icons */}
           <HStack className="items-center gap-2" alignItems="center">
@@ -94,17 +104,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
               disabled={disabled}
             >
               <Box className="p-2 rounded-full">
-                <ImagePlus
-                  size={22}
-                  color="#6B7280"
-                  className="dark:text-neutral-400"
-                />
+                <ImagePlus size={22} color={colors.text.secondary} />
               </Box>
             </TouchableOpacity>
           </HStack>
 
           {/* Message input */}
-          <Input className="flex-1 bg-neutral-100 dark:bg-neutral-800 border-0">
+          <Input
+            className="flex-1 border-0"
+            style={{ backgroundColor: colors.bg.secondary }}
+          >
             <InputField
               placeholder="Write a message"
               value={messageText}
@@ -122,15 +131,23 @@ const MessageInput: React.FC<MessageInputProps> = ({
             disabled={!messageText.trim() || disabled}
           >
             <Box
-              className={`p-2 rounded-full ${
-                messageText.trim() && !disabled
-                  ? 'bg-blue-600 dark:bg-blue-700'
-                  : 'bg-neutral-300 dark:bg-neutral-700'
-              }`}
+              className="p-2 rounded-full"
+              style={{
+                backgroundColor:
+                  messageText.trim() && !disabled
+                    ? isDark
+                      ? '#1d4ed8'
+                      : '#2563eb'
+                    : colors.bg.secondary,
+              }}
             >
               <Send
                 size={20}
-                color={messageText.trim() && !disabled ? '#ffffff' : '#9CA3AF'}
+                color={
+                  messageText.trim() && !disabled
+                    ? '#ffffff'
+                    : colors.text.muted
+                }
               />
             </Box>
           </TouchableOpacity>
@@ -139,11 +156,22 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* Upload Progress */}
       {uploadProgress && (
-        <Box className="absolute bottom-24 left-4 right-4 bg-white dark:bg-neutral-800 p-4 rounded-lg shadow-lg">
-          <Text className="text-sm mb-2">
+        <Box
+          className="absolute bottom-24 left-4 right-4 p-4 rounded-lg shadow-lg"
+          style={{ backgroundColor: colors.bg.secondary }}
+        >
+          <RNText
+            style={[
+              styles.progressText,
+              { color: colors.text.primary, marginBottom: 8 },
+            ]}
+          >
             Uploading image... {Math.round(uploadProgress.progress)}%
-          </Text>
-          <Box className="h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+          </RNText>
+          <Box
+            className="h-2 rounded-full overflow-hidden"
+            style={{ backgroundColor: colors.bg.muted }}
+          >
             <Box
               className="h-full bg-blue-500"
               style={{ width: `${uploadProgress.progress}%` }}
@@ -179,5 +207,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
     </>
   );
 };
+
+const styles = StyleSheet.create({
+  progressText: {
+    fontSize: 14,
+  },
+});
 
 export default MessageInput;

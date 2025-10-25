@@ -1,14 +1,15 @@
 import React from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, Text as RNText, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/types/navigation';
 import { Box } from '@ui/box';
 import { HStack } from '@ui/hstack';
-import { Text } from '@ui/text';
 import { VStack } from '@ui/vstack';
 import { Group } from '@chatapp/shared';
 import { formatTime } from '@/utils';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 import GroupMemberAvatars from './GroupMemberAvatars';
 
 type GroupItemNavigationProp = NativeStackNavigationProp<
@@ -22,6 +23,8 @@ interface GroupItemProps {
 
 const GroupItem: React.FC<GroupItemProps> = ({ group }) => {
   const navigation = useNavigation<GroupItemNavigationProp>();
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
 
   const lastMessageText = group.lastMessage?.text || 'No messages yet';
   const lastMessageTime = group.lastMessage?.createdAt
@@ -34,7 +37,13 @@ const GroupItem: React.FC<GroupItemProps> = ({ group }) => {
 
   return (
     <Pressable onPress={handleGroupPress}>
-      <Box className="p-4 border-b border-neutral-200 dark:border-neutral-700">
+      <Box
+        className="p-4"
+        style={{
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border.default,
+        }}
+      >
         <HStack space="md" alignItems="center">
           <GroupMemberAvatars
             memberIds={group.members}
@@ -44,30 +53,48 @@ const GroupItem: React.FC<GroupItemProps> = ({ group }) => {
 
           <VStack flex={1} space="xs">
             <HStack justifyContent="between" alignItems="center">
-              <Text className="text-lg font-semibold">{group.name}</Text>
+              <RNText style={[styles.name, { color: colors.text.primary }]}>
+                {group.name}
+              </RNText>
               {lastMessageTime && (
-                <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+                <RNText style={[styles.time, { color: colors.text.muted }]}>
                   {lastMessageTime}
-                </Text>
+                </RNText>
               )}
             </HStack>
 
-            <Text
-              className="text-sm text-neutral-600 dark:text-neutral-300"
+            <RNText
+              style={[styles.message, { color: colors.text.secondary }]}
               numberOfLines={2}
             >
               {lastMessageText}
-            </Text>
+            </RNText>
 
-            <Text className="text-xs text-neutral-500 dark:text-neutral-400">
+            <RNText style={[styles.members, { color: colors.text.muted }]}>
               {group.members.length} member
               {group.members.length !== 1 ? 's' : ''}
-            </Text>
+            </RNText>
           </VStack>
         </HStack>
       </Box>
     </Pressable>
   );
 };
+
+const styles = StyleSheet.create({
+  name: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  time: {
+    fontSize: 14,
+  },
+  message: {
+    fontSize: 14,
+  },
+  members: {
+    fontSize: 12,
+  },
+});
 
 export default GroupItem;

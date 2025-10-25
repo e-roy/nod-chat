@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList } from 'react-native';
+import { FlatList, Text as RNText, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ButtonText } from '@ui/button';
-import { Text } from '@ui/text';
 import { VStack } from '@ui/vstack';
 import { useAuthStore } from '@/store/auth';
 import { useChatStore } from '@/store/chat';
 import { usePresenceStore } from '@/store/presence';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 import { Chat } from '@chatapp/shared';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/firebaseApp';
@@ -29,6 +30,8 @@ const ChatListScreen: React.FC = () => {
     // typingUsers,
   } = useChatStore();
   const { userPresence, subscribeToUserPresence } = usePresenceStore();
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
   const [userDisplayNames, setUserDisplayNames] = useState<Map<string, string>>(
     new Map()
   );
@@ -153,7 +156,9 @@ const ChatListScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.bg.primary }]}
+      >
         <ListSkeleton itemCount={6} showHeader={true} />
       </SafeAreaView>
     );
@@ -161,12 +166,14 @@ const ChatListScreen: React.FC = () => {
 
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.bg.primary }]}
+      >
         <VStack className="flex-1 justify-center items-center p-4">
           <VStack className="items-center gap-4">
-            <Text className="text-red-500 dark:text-red-400 text-center">
+            <RNText style={[styles.errorText, { color: colors.error }]}>
               {error}
-            </Text>
+            </RNText>
             <Button onPress={clearError} variant="outline">
               <ButtonText>Try Again</ButtonText>
             </Button>
@@ -177,16 +184,22 @@ const ChatListScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.bg.primary }]}
+    >
       {chats.length === 0 ? (
         <VStack className="flex-1 justify-center items-center p-4">
           <VStack className="items-center gap-4">
-            <Text className="text-lg text-neutral-600 dark:text-neutral-300 text-center">
+            <RNText
+              style={[styles.emptyTitle, { color: colors.text.secondary }]}
+            >
               No chats yet
-            </Text>
-            <Text className="text-sm text-neutral-500 dark:text-neutral-400 text-center">
+            </RNText>
+            <RNText
+              style={[styles.emptySubtitle, { color: colors.text.muted }]}
+            >
               Start a conversation with someone!
-            </Text>
+            </RNText>
           </VStack>
         </VStack>
       ) : (
@@ -200,5 +213,22 @@ const ChatListScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  errorText: {
+    textAlign: 'center',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+});
 
 export default ChatListScreen;

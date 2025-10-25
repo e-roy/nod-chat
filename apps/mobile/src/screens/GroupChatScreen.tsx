@@ -1,11 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Text as RNText,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 import { Box } from '@ui/box';
-import { Text } from '@ui/text';
 import { HStack } from '@ui/hstack';
 import { VStack } from '@ui/vstack';
 import { Spinner } from '@ui/spinner';
@@ -14,6 +19,8 @@ import { useChatStore } from '@/store/chat';
 import { useGroupStore } from '@/store/groups';
 import { useAuthStore } from '@/store/auth';
 import { usePresenceStore } from '@/store/presence';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 import { ChatMessage, User } from '@chatapp/shared';
 import { RootStackParamList } from '@/types/navigation';
 import MessageInput from '@/components/MessageInput';
@@ -30,6 +37,8 @@ type GroupChatScreenProps = NativeStackScreenProps<
 
 const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
   const { groupId } = route.params;
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
 
   const {
     messages,
@@ -211,12 +220,16 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
 
   if (!group) {
     return (
-      <SafeAreaView className="flex-1 bg-white dark:bg-neutral-900">
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.bg.primary }]}
+      >
         <VStack className="flex-1 justify-center items-center">
           <Spinner size="large" />
-          <Text className="mt-4 text-neutral-600 dark:text-neutral-300">
+          <RNText
+            style={[styles.loadingText, { color: colors.text.secondary }]}
+          >
             Loading group...
-          </Text>
+          </RNText>
         </VStack>
       </SafeAreaView>
     );
@@ -224,7 +237,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-white dark:bg-neutral-900"
+      style={[styles.container, { backgroundColor: colors.bg.primary }]}
       edges={['top']}
     >
       <KeyboardAvoidingView
@@ -232,7 +245,13 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Group Header */}
-        <Box className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
+        <Box
+          style={{
+            backgroundColor: colors.bg.primary,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border.default,
+          }}
+        >
           <HStack className="px-4 py-3" space="md" alignItems="center">
             <GroupMemberAvatars
               memberIds={group.members}
@@ -241,13 +260,17 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
             />
 
             <VStack flex={1}>
-              <Text className="text-base font-semibold text-neutral-900 dark:text-white">
+              <RNText
+                style={[styles.groupName, { color: colors.text.primary }]}
+              >
                 {group.name}
-              </Text>
-              <Text className="text-xs text-neutral-500 dark:text-neutral-400">
+              </RNText>
+              <RNText
+                style={[styles.memberCount, { color: colors.text.muted }]}
+              >
                 {group.members.length} member
                 {group.members.length !== 1 ? 's' : ''}
-              </Text>
+              </RNText>
             </VStack>
           </HStack>
         </Box>
@@ -261,19 +284,23 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
           data={chatMessages}
           keyExtractor={item => item.id}
           renderItem={renderMessage}
-          className="flex-1 bg-white dark:bg-neutral-900"
+          style={{ flex: 1, backgroundColor: colors.bg.primary }}
           contentContainerStyle={{ paddingVertical: 12 }}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
           }
           ListEmptyComponent={
             <VStack className="flex-1 justify-center items-center p-8">
-              <Text className="text-lg text-neutral-600 dark:text-neutral-300 text-center">
+              <RNText
+                style={[styles.emptyTitle, { color: colors.text.secondary }]}
+              >
                 No messages yet
-              </Text>
-              <Text className="text-sm text-neutral-500 dark:text-neutral-400 text-center mt-2">
+              </RNText>
+              <RNText
+                style={[styles.emptySubtitle, { color: colors.text.muted }]}
+              >
                 Start the conversation!
-              </Text>
+              </RNText>
             </VStack>
           }
         />
@@ -291,5 +318,30 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  loadingText: {
+    marginTop: 16,
+  },
+  groupName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  memberCount: {
+    fontSize: 12,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+});
 
 export default GroupChatScreen;

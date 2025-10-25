@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Text as RNText, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -6,12 +7,13 @@ import { RootStackParamList } from '@/types/navigation';
 
 import { Button, ButtonText } from '@ui/button';
 import { Input, InputField } from '@ui/input';
-import { Text } from '@ui/text';
 import { Box } from '@ui/box';
 import { VStack } from '@ui/vstack';
 
 import { useChatStore } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 
 type NewChatScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -22,15 +24,19 @@ const NewChatScreen: React.FC = () => {
   const navigation = useNavigation<NewChatScreenNavigationProp>();
   const { user, loading: authLoading } = useAuthStore();
   const { createChat, error, clearError } = useChatStore();
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
   const [participantEmail, setParticipantEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Show loading if auth is still loading
   if (authLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.bg.primary }]}
+      >
         <VStack className="flex-1 justify-center items-center">
-          <Text>Loading...</Text>
+          <RNText style={{ color: colors.text.primary }}>Loading...</RNText>
         </VStack>
       </SafeAreaView>
     );
@@ -39,11 +45,13 @@ const NewChatScreen: React.FC = () => {
   // Show error if user is not authenticated
   if (!user) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.bg.primary }]}
+      >
         <VStack className="flex-1 justify-center items-center p-4">
-          <Text className="text-lg text-red-500 dark:text-red-400 text-center mb-4">
+          <RNText style={[styles.errorText, { color: colors.error }]}>
             Not authenticated
-          </Text>
+          </RNText>
           <Button onPress={() => navigation.goBack()}>
             <ButtonText>Go Back</ButtonText>
           </Button>
@@ -101,14 +109,18 @@ const NewChatScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.bg.primary }]}
+    >
       <VStack className="flex-1 p-4">
         <VStack className="space-y-6">
           <VStack className="space-y-2">
-            <Text className="text-xl font-bold">Start New Chat</Text>
-            <Text className="text-sm text-neutral-600 dark:text-neutral-300">
+            <RNText style={[styles.title, { color: colors.text.primary }]}>
+              Start New Chat
+            </RNText>
+            <RNText style={[styles.subtitle, { color: colors.text.secondary }]}>
               Enter the email address of the person you want to chat with
-            </Text>
+            </RNText>
           </VStack>
 
           <VStack className="space-y-4">
@@ -123,9 +135,9 @@ const NewChatScreen: React.FC = () => {
             </Input>
 
             {error && (
-              <Text className="text-red-500 dark:text-red-400 text-sm text-center">
+              <RNText style={[styles.error, { color: colors.error }]}>
                 {error}
-              </Text>
+              </RNText>
             )}
 
             <Button
@@ -146,5 +158,27 @@ const NewChatScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  subtitle: {
+    fontSize: 14,
+  },
+  error: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+});
 
 export default NewChatScreen;

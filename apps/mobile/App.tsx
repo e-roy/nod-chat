@@ -1,31 +1,31 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import { View } from 'react-native';
 
 import AppNavigator from './src/navigation';
-import { RootLayout } from './src/layout';
-import { ThemeProvider } from './src/components/ThemeProvider';
 import { useThemeStore } from './src/store/theme';
 
 import { GluestackUIProvider } from '@ui/gluestack-ui-provider';
 
 const AppContent: React.FC = () => {
-  const { mode } = useThemeStore();
+  const { mode, isDark, initializeTheme } = useThemeStore();
+
+  // Initialize theme on mount
+  useEffect(() => {
+    initializeTheme();
+  }, [initializeTheme]);
 
   return (
-    <GluestackUIProvider mode={mode}>
-      <AppNavigator />
-      <StatusBar style="auto" />
-    </GluestackUIProvider>
+    <View className={isDark ? 'dark' : ''} style={{ flex: 1 }}>
+      <GluestackUIProvider mode={mode}>
+        <AppNavigator />
+        <StatusBar style="auto" />
+      </GluestackUIProvider>
+    </View>
   );
 };
 
 export default function App() {
-  return (
-    <RootLayout>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
-    </RootLayout>
-  );
+  return <AppContent />;
 }

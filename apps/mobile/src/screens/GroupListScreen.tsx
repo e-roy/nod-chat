@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
-import { FlatList } from 'react-native';
+import { FlatList, Text as RNText, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, ButtonText } from '@ui/button';
-import { Text } from '@ui/text';
 import { VStack } from '@ui/vstack';
 
 import { useGroupStore } from '@/store/groups';
 import { useAuthStore } from '@/store/auth';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 import { Group } from '@chatapp/shared';
 import GroupItem from '@/components/GroupItem';
 import ListSkeleton from '@/components/ListSkeleton';
@@ -16,6 +17,8 @@ const GroupListScreen = () => {
   const { groups, loading, error, loadGroups, initializeTransport } =
     useGroupStore();
   const { user } = useAuthStore();
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
 
   useEffect(() => {
     if (user) {
@@ -30,7 +33,9 @@ const GroupListScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.bg.primary }]}
+      >
         <ListSkeleton itemCount={4} showHeader={false} />
       </SafeAreaView>
     );
@@ -38,11 +43,13 @@ const GroupListScreen = () => {
 
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.bg.primary }]}
+      >
         <VStack className="flex-1 justify-center items-center p-4">
-          <Text className="text-red-500 dark:text-red-400 text-center mb-4">
+          <RNText style={[styles.errorText, { color: colors.error }]}>
             {error}
-          </Text>
+          </RNText>
           <Button onPress={loadGroups}>
             <ButtonText>Retry</ButtonText>
           </Button>
@@ -52,7 +59,9 @@ const GroupListScreen = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.bg.primary }]}
+    >
       <FlatList
         data={groups}
         keyExtractor={item => item.id}
@@ -60,17 +69,40 @@ const GroupListScreen = () => {
         className="flex-1"
         ListEmptyComponent={
           <VStack className="flex-1 justify-center items-center p-8">
-            <Text className="text-lg text-neutral-600 dark:text-neutral-300 text-center">
+            <RNText
+              style={[styles.emptyTitle, { color: colors.text.secondary }]}
+            >
               No groups yet
-            </Text>
-            <Text className="text-sm text-neutral-500 dark:text-neutral-400 text-center mt-2">
+            </RNText>
+            <RNText
+              style={[styles.emptySubtitle, { color: colors.text.muted }]}
+            >
               Create a group to start chatting with multiple people
-            </Text>
+            </RNText>
           </VStack>
         }
       />
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  errorText: {
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+});
 
 export default GroupListScreen;

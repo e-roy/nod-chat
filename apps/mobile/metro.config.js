@@ -19,4 +19,7 @@ config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 // Ensure Metro can resolve the aliases
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
-module.exports = withNativeWind(config, { input: './global.css' });
+module.exports = withNativeWind(config, {
+  input: './global.css',
+  inlineRem: 16,
+});

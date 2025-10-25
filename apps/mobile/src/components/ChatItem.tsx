@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, Text as RNText, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/types/navigation';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@ui/avatar';
-import { Text } from '@ui/text';
 import { Box } from '@ui/box';
 import { VStack } from '@ui/vstack';
 import { HStack } from '@ui/hstack';
 import { Chat } from '@chatapp/shared';
 import { formatTime } from '@/utils';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 
 type ChatItemNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -30,7 +31,8 @@ const ParticipantName: React.FC<{
   chat: Chat;
   user: { uid: string } | null;
   getUserDisplayName: (userId: string) => Promise<string>;
-}> = ({ chat, user, getUserDisplayName }) => {
+  colors: any;
+}> = ({ chat, user, getUserDisplayName, colors }) => {
   const [displayName, setDisplayName] = useState<string>('Loading...');
 
   useEffect(() => {
@@ -55,7 +57,11 @@ const ParticipantName: React.FC<{
     loadParticipantName();
   }, [chat, getUserDisplayName, user?.uid]);
 
-  return <Text className="text-base font-semibold">{displayName}</Text>;
+  return (
+    <RNText style={[styles.name, { color: colors.text.primary }]}>
+      {displayName}
+    </RNText>
+  );
 };
 
 const ChatItem: React.FC<ChatItemProps> = ({
@@ -67,6 +73,8 @@ const ChatItem: React.FC<ChatItemProps> = ({
   getUserDisplayName,
 }) => {
   const navigation = useNavigation<ChatItemNavigationProp>();
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
 
   // Helper function to generate initials from a name
   const generateInitials = (name: string): string => {
@@ -120,8 +128,12 @@ const ChatItem: React.FC<ChatItemProps> = ({
   return (
     <TouchableOpacity onPress={handleChatPress}>
       <HStack
-        className="px-4 py-4 border-b border-neutral-200 dark:border-neutral-700"
+        className="px-4 py-4"
         alignItems="center"
+        style={{
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border.default,
+        }}
       >
         <Box className="relative mr-3">
           <Avatar size="md">
@@ -135,7 +147,10 @@ const ChatItem: React.FC<ChatItemProps> = ({
           </Avatar>
           {/* Presence Indicator */}
           {isOnline && (
-            <Box className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-neutral-50 dark:border-neutral-950" />
+            <Box
+              className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500"
+              style={{ borderWidth: 2, borderColor: colors.bg.primary }}
+            />
           )}
         </Box>
 
@@ -148,26 +163,38 @@ const ChatItem: React.FC<ChatItemProps> = ({
               chat={chat}
               user={user}
               getUserDisplayName={getUserDisplayName}
+              colors={colors}
             />
-            <Text className="text-xs text-neutral-500 dark:text-neutral-400">
+            <RNText style={[styles.time, { color: colors.text.muted }]}>
               {formatTime(lastMessageTime)}
-            </Text>
+            </RNText>
           </HStack>
 
           <HStack className="items-center gap-1" alignItems="center">
-            {/* TODO: Re-enable typing spinner later */}
-            {/* {isTyping && <Spinner size="small" />} */}
-            <Text
-              className="text-sm text-neutral-500 dark:text-neutral-400"
+            <RNText
+              style={[styles.message, { color: colors.text.muted }]}
               numberOfLines={2}
             >
               {lastMessageText}
-            </Text>
+            </RNText>
           </HStack>
         </VStack>
       </HStack>
     </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  name: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  time: {
+    fontSize: 12,
+  },
+  message: {
+    fontSize: 14,
+  },
+});
 
 export default ChatItem;

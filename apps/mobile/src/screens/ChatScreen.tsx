@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   Modal,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
@@ -16,6 +17,8 @@ import { db } from '@/firebase/firebaseApp';
 import { useChatStore } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
 import { usePresenceStore } from '@/store/presence';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 import { ChatMessage, User } from '@chatapp/shared';
 import MessageInput from '@/components/MessageInput';
 import MessageItem from '@/components/MessageItem';
@@ -39,6 +42,8 @@ const ChatScreen: React.FC = () => {
     // stopTyping,
   } = useChatStore();
   const { userPresence } = usePresenceStore();
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
 
   const [messageText, setMessageText] = useState('');
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
@@ -199,7 +204,7 @@ const ChatScreen: React.FC = () => {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-white dark:bg-neutral-900"
+      style={[styles.container, { backgroundColor: colors.bg.primary }]}
       edges={['top']}
     >
       <KeyboardAvoidingView
@@ -215,7 +220,7 @@ const ChatScreen: React.FC = () => {
           data={chatMessages}
           keyExtractor={item => item.id}
           renderItem={renderMessage}
-          className="flex-1 bg-white dark:bg-neutral-900"
+          style={[styles.container, { backgroundColor: colors.bg.primary }]}
           contentContainerStyle={{ paddingVertical: 12 }}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
@@ -260,5 +265,11 @@ const ChatScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
 
 export default ChatScreen;

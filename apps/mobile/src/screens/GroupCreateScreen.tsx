@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FlatList, Pressable, Alert } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  Alert,
+  Text as RNText,
+  StyleSheet,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +24,8 @@ import { VStack } from '@ui/vstack';
 
 import { useGroupStore } from '@/store/groups';
 import { useAuthStore } from '@/store/auth';
+import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 
 import { db } from '@/firebase/firebaseApp';
 import { User } from '@chatapp/shared';
@@ -32,6 +40,8 @@ const GroupCreateScreen = () => {
   const navigation = useNavigation<GroupCreateScreenNavigationProp>();
   const { createGroup } = useGroupStore();
   const { user } = useAuthStore();
+  const { isDark } = useThemeStore();
+  const colors = getColors(isDark);
 
   const [groupName, setGroupName] = useState('');
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
@@ -120,9 +130,12 @@ const GroupCreateScreen = () => {
     return (
       <Pressable onPress={() => toggleUserSelection(item.uid)}>
         <Box
-          className={`p-4 border-b border-neutral-200 dark:border-neutral-700 ${
-            isSelected ? 'bg-neutral-100 dark:bg-neutral-800' : 'bg-transparent'
-          }`}
+          className="p-4"
+          style={{
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border.default,
+            backgroundColor: isSelected ? colors.bg.secondary : 'transparent',
+          }}
         >
           <HStack space="md" alignItems="center">
             <Checkbox
@@ -150,9 +163,9 @@ const GroupCreateScreen = () => {
               <Text className="text-base font-medium">
                 {item.displayName || item.email}
               </Text>
-              <Text className="text-sm text-neutral-600 dark:text-neutral-300">
+              <RNText style={[styles.email, { color: colors.text.secondary }]}>
                 {item.email}
-              </Text>
+              </RNText>
             </VStack>
 
             {item.online && (
@@ -166,19 +179,25 @@ const GroupCreateScreen = () => {
 
   if (loadingUsers) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.bg.primary }]}
+      >
         <VStack className="flex-1 justify-center items-center">
           <Spinner size="large" />
-          <Text className="mt-4 text-neutral-600 dark:text-neutral-300">
+          <RNText
+            style={[styles.loadingText, { color: colors.text.secondary }]}
+          >
             Loading users...
-          </Text>
+          </RNText>
         </VStack>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.bg.primary }]}
+    >
       <VStack className="flex-1 p-4 space-y-4">
         <VStack className="space-y-2">
           <Text className="text-base font-medium">Group Name</Text>
@@ -217,5 +236,17 @@ const GroupCreateScreen = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  email: {
+    fontSize: 14,
+  },
+  loadingText: {
+    marginTop: 16,
+  },
+});
 
 export default GroupCreateScreen;

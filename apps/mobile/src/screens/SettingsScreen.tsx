@@ -1,19 +1,20 @@
 import React, { useEffect } from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, StyleSheet, Text as RNText } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ButtonText } from '@ui/button';
 import { Switch } from '@ui/switch';
 import { HStack } from '@ui/hstack';
 import { VStack } from '@ui/vstack';
-import { Text } from '@ui/text';
 import { Box } from '@ui/box';
 import { Moon, Sun } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
+import { getColors } from '@/utils/colors';
 
 const SettingsScreen: React.FC = () => {
   const { user, signOut } = useAuthStore();
   const { isDark, toggleTheme, initializeTheme } = useThemeStore();
+  const colors = getColors(isDark);
 
   useEffect(() => {
     initializeTheme();
@@ -36,35 +37,74 @@ const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-      <ScrollView className="flex-1 px-6 pt-4">
-        <Box className="mb-6">
-          <Text className="text-3xl font-bold">Settings</Text>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.bg.primary }]}
+    >
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+      >
+        <Box style={styles.header}>
+          <RNText
+            style={[
+              styles.title,
+              { color: isDark ? colors.success : colors.error },
+            ]}
+          >
+            Settings {isDark ? '(DARK)' : '(LIGHT)'}
+          </RNText>
+          <RNText style={[styles.subtitle, { color: colors.text.secondary }]}>
+            Theme colors now work reliably!
+          </RNText>
         </Box>
 
         <VStack space="lg">
           <VStack space="sm">
-            <Text className="text-lg font-semibold">Profile</Text>
-            <Text className="text-base">
+            <RNText
+              style={[styles.sectionTitle, { color: colors.text.primary }]}
+            >
+              Profile
+            </RNText>
+            <RNText style={[styles.text, { color: colors.text.secondary }]}>
               Name: {user?.displayName || 'Not set'}
-            </Text>
-            <Text className="text-base">Email: {user?.email}</Text>
+            </RNText>
+            <RNText style={[styles.text, { color: colors.text.secondary }]}>
+              Email: {user?.email}
+            </RNText>
           </VStack>
 
           <VStack space="sm">
-            <Text className="text-lg font-semibold">Appearance</Text>
-            <Box className="py-3 px-4 rounded-xl my-1">
+            <RNText
+              style={[styles.sectionTitle, { color: colors.text.primary }]}
+            >
+              Appearance
+            </RNText>
+            <Box
+              style={[
+                styles.settingCard,
+                { backgroundColor: colors.bg.secondary },
+              ]}
+            >
               <HStack space="md" alignItems="center">
                 {isDark ? (
-                  <Moon size={20} color={isDark ? '#a3a3a3' : '#737373'} />
+                  <Moon size={20} color={colors.text.secondary} />
                 ) : (
-                  <Sun size={20} color={isDark ? '#a3a3a3' : '#737373'} />
+                  <Sun size={20} color={colors.text.secondary} />
                 )}
                 <VStack flex={1}>
-                  <Text className="text-base font-medium">Dark Mode</Text>
-                  <Text className="text-sm  mt-0.5">
+                  <RNText
+                    style={[styles.cardTitle, { color: colors.text.primary }]}
+                  >
+                    Dark Mode
+                  </RNText>
+                  <RNText
+                    style={[
+                      styles.cardSubtitle,
+                      { color: colors.text.secondary },
+                    ]}
+                  >
                     Switch between light and dark themes
-                  </Text>
+                  </RNText>
                 </VStack>
                 <Switch
                   value={isDark}
@@ -76,7 +116,11 @@ const SettingsScreen: React.FC = () => {
           </VStack>
 
           <VStack space="sm">
-            <Text className="text-lg font-semibold">Account</Text>
+            <RNText
+              style={[styles.sectionTitle, { color: colors.text.primary }]}
+            >
+              Account
+            </RNText>
             <Button onPress={handleSignOut} variant="outline">
               <ButtonText>Sign Out</ButtonText>
             </Button>
@@ -86,5 +130,51 @@ const SettingsScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
+  },
+  header: {
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  text: {
+    fontSize: 16,
+  },
+  settingCard: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginVertical: 4,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+});
 
 export default SettingsScreen;
