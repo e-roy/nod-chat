@@ -22,6 +22,7 @@
     "deploy:storage": "firebase deploy --only storage",
     "emulators": "firebase emulators:start",
     "emulators:auth": "firebase emulators:start --only auth",
-    "emulators:firestore": "firebase emulators:start --only firestore"
+    "emulators:firestore": "firebase emulators:start --only firestore",
+    "seed": "pnpm --filter @chatapp/scripts seed"
   }
 }
