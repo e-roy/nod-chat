@@ -1,7 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+  Modal,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
+import { ImagePlus, Camera, Image as ImageIcon } from 'lucide-react-native';
 import { RootStackParamList } from '@/types/navigation';
 
 import { Button, ButtonText } from '@ui/button';
@@ -11,11 +20,25 @@ import { Text } from '@ui/text';
 import { Box } from '@ui/box';
 import { VStack } from '@ui/vstack';
 import { HStack } from '@ui/hstack';
-// import { Spinner } from '@ui/spinner'; // TODO: Re-enable when typing indicators work
+import {
+  Actionsheet,
+  ActionsheetBackdrop,
+  ActionsheetContent,
+  ActionsheetDragIndicatorWrapper,
+  ActionsheetDragIndicator,
+  ActionsheetItem,
+  ActionsheetItemText,
+} from '@ui/actionsheet';
 import { useChatStore } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
 import { usePresenceStore } from '@/store/presence';
 import { ChatMessage } from '@chatapp/shared';
+import {
+  takePhoto,
+  pickImage,
+  uploadImage,
+  UploadProgress,
+} from '@/messaging/mediaUpload';
 
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
 
@@ -37,6 +60,11 @@ const ChatScreen: React.FC = () => {
   const { userPresence } = usePresenceStore();
 
   const [messageText, setMessageText] = useState('');
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
+    null
+  );
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const chatMessages = messages.get(chatId) || [];
@@ -89,6 +117,41 @@ const ChatScreen: React.FC = () => {
     // }
   };
 
+  const handleImageUpload = async (imageUri: string) => {
+    try {
+      setUploadProgress({ bytesTransferred: 0, totalBytes: 100, progress: 0 });
+
+      // Upload image to Firebase Storage
+      const imageUrl = await uploadImage(chatId, imageUri, progress => {
+        setUploadProgress(progress);
+      });
+
+      // Send message with image URL
+      await sendMessage(chatId, '', imageUrl);
+
+      setUploadProgress(null);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setUploadProgress(null);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    setShowImagePicker(false);
+    const uri = await takePhoto();
+    if (uri) {
+      await handleImageUpload(uri);
+    }
+  };
+
+  const handlePickImage = async () => {
+    setShowImagePicker(false);
+    const uri = await pickImage();
+    if (uri) {
+      await handleImageUpload(uri);
+    }
+  };
+
   const getMessageStatusIcon = (status: string) => {
     switch (status) {
       case 'sending':
@@ -106,6 +169,7 @@ const ChatScreen: React.FC = () => {
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isOwnMessage = item.senderId === user?.uid;
+    const hasImage = !!item.imageUrl;
 
     return (
       <HStack
@@ -117,21 +181,38 @@ const ChatScreen: React.FC = () => {
           alignItems={isOwnMessage ? 'end' : 'start'}
         >
           <Box
-            className={`px-3 py-2 rounded-2xl ${
+            className={`${hasImage ? 'p-1' : 'px-3 py-2'} rounded-2xl ${
               isOwnMessage
                 ? 'bg-blue-500 rounded-br-md'
                 : 'bg-neutral-200 dark:bg-neutral-700 rounded-bl-md'
             }`}
           >
-            <Text
-              className={`text-sm ${
-                isOwnMessage
-                  ? 'text-white'
-                  : 'text-neutral-900 dark:text-neutral-100'
-              }`}
-            >
-              {item.text}
-            </Text>
+            {hasImage && (
+              <TouchableOpacity
+                onPress={() => setFullScreenImage(item.imageUrl!)}
+              >
+                <Image
+                  source={{ uri: item.imageUrl! }}
+                  style={{
+                    width: 200,
+                    height: 200,
+                    borderRadius: 12,
+                  }}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )}
+            {item.text && (
+              <Text
+                className={`text-sm ${hasImage ? 'mt-2' : ''} ${
+                  isOwnMessage
+                    ? 'text-white'
+                    : 'text-neutral-900 dark:text-neutral-100'
+                }`}
+              >
+                {item.text}
+              </Text>
+            )}
           </Box>
           <HStack className="items-center mt-1 gap-1" alignItems="center">
             <Text className="text-xs text-neutral-500 dark:text-neutral-400">
@@ -246,9 +327,17 @@ const ChatScreen: React.FC = () => {
 
         {/* Message Input */}
         <HStack
-          className="items-center p-4 border-t border-neutral-200 dark:border-neutral-700 gap-3"
+          className="items-center p-4 border-t border-neutral-200 dark:border-neutral-700 gap-2"
           alignItems="center"
         >
+          <Button
+            onPress={() => setShowImagePicker(true)}
+            size="md"
+            variant="outline"
+            className="px-3"
+          >
+            <ImagePlus size={20} color="#6B7280" />
+          </Button>
           <Input className="flex-1">
             <InputField
               placeholder="Type a message..."
@@ -266,7 +355,73 @@ const ChatScreen: React.FC = () => {
             <ButtonText>Send</ButtonText>
           </Button>
         </HStack>
+
+        {/* Upload Progress */}
+        {uploadProgress && (
+          <Box className="absolute bottom-24 left-4 right-4 bg-white dark:bg-neutral-800 p-4 rounded-lg shadow-lg">
+            <Text className="text-sm mb-2">
+              Uploading image... {Math.round(uploadProgress.progress)}%
+            </Text>
+            <Box className="h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+              <Box
+                className="h-full bg-blue-500"
+                style={{ width: `${uploadProgress.progress}%` }}
+              />
+            </Box>
+          </Box>
+        )}
       </KeyboardAvoidingView>
+
+      {/* Image Picker Actionsheet */}
+      <Actionsheet
+        isOpen={showImagePicker}
+        onClose={() => setShowImagePicker(false)}
+      >
+        <ActionsheetBackdrop />
+        <ActionsheetContent>
+          <ActionsheetDragIndicatorWrapper>
+            <ActionsheetDragIndicator />
+          </ActionsheetDragIndicatorWrapper>
+          <ActionsheetItem onPress={handleTakePhoto}>
+            <HStack className="items-center gap-3" alignItems="center">
+              <Camera size={20} />
+              <ActionsheetItemText>Take Photo</ActionsheetItemText>
+            </HStack>
+          </ActionsheetItem>
+          <ActionsheetItem onPress={handlePickImage}>
+            <HStack className="items-center gap-3" alignItems="center">
+              <ImageIcon size={20} />
+              <ActionsheetItemText>Choose from Library</ActionsheetItemText>
+            </HStack>
+          </ActionsheetItem>
+        </ActionsheetContent>
+      </Actionsheet>
+
+      {/* Full-Screen Image Viewer */}
+      <Modal
+        visible={!!fullScreenImage}
+        transparent
+        onRequestClose={() => setFullScreenImage(null)}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          activeOpacity={1}
+          onPress={() => setFullScreenImage(null)}
+        >
+          {fullScreenImage && (
+            <Image
+              source={{ uri: fullScreenImage }}
+              style={{ width: '90%', height: '70%' }}
+              resizeMode="contain"
+            />
+          )}
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };

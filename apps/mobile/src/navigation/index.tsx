@@ -1,13 +1,23 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useRef } from 'react';
+import {
+  NavigationContainer,
+  NavigationContainerRef,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MessageCircle, Users, Settings } from 'lucide-react-native';
+
 import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
 
 import { useNavigationTheme } from '@/utils/navigationTheme';
 import { PresenceInitializer } from '@/components/PresenceInitializer';
+import {
+  setupNotificationListeners,
+  showLocalNotification,
+} from '@/messaging/notifications';
+import { useChatStore } from '@/store/chat';
+import { RootStackParamList } from '@/types/navigation';
 
 import AuthScreen from '@/screens/AuthScreen';
 import ChatListScreen from '@/screens/ChatListScreen';
@@ -96,6 +106,59 @@ const MainTabs = () => {
 const AppNavigator = () => {
   const { user, loading } = useAuthStore();
   const colors = useNavigationTheme();
+  const { currentChatId } = useChatStore();
+  const navigationRef =
+    useRef<NavigationContainerRef<RootStackParamList>>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Set up notification handlers
+    setupNotificationListeners(
+      // Handle notifications received while app is in foreground
+      notification => {
+        const data = notification.request.content.data;
+        const chatId = data?.chatId as string;
+        // const isGroup = data?.isGroup === 'true';
+        const title = notification.request.content.title || 'New Message';
+        const body = notification.request.content.body || '';
+
+        // Only show notification if it's NOT from the currently active chat
+        if (chatId && chatId !== currentChatId) {
+          showLocalNotification(title, body, data).catch(error => {
+            console.warn('Failed to show local notification:', error);
+          });
+        }
+      },
+      // Handle notification taps (deep linking)
+      response => {
+        const data = response.notification.request.content.data;
+        const chatId = data?.chatId as string;
+        const isGroup = data?.isGroup === 'true';
+
+        if (chatId && navigationRef.current) {
+          // Navigate to the appropriate chat screen
+          if (isGroup) {
+            navigationRef.current.navigate('GroupChat', {
+              groupId: chatId,
+            });
+          } else {
+            // For regular chats, we need to get the participant name
+            // This is a simplification - in production, you'd fetch this from Firestore
+            navigationRef.current.navigate('Chat', {
+              chatId,
+              participantName: data?.senderName as string | undefined,
+            });
+          }
+        }
+      }
+    );
+
+    // Clean up listeners when component unmounts or user changes
+    return () => {
+      // Cleanup is handled in auth store signOut
+    };
+  }, [user, currentChatId]);
 
   if (loading) {
     // You can add a loading screen here
@@ -105,6 +168,7 @@ const AppNavigator = () => {
   return (
     <PresenceInitializer>
       <NavigationContainer
+        ref={navigationRef}
         theme={{
           dark: useThemeStore.getState().isDark,
           colors: {

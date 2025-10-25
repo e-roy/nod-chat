@@ -7,7 +7,7 @@ import {
   connectAuthEmulator,
 } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
 import Constants from 'expo-constants';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
@@ -76,6 +76,8 @@ if (isDevelopment) {
     const firestorePort = 8080;
     const databaseHost = emulatorHost;
     const databasePort = 9000;
+    const storageHost = emulatorHost;
+    const storagePort = 9199;
 
     // Connect Auth emulator
     if (!auth.emulatorConfig) {
@@ -94,6 +96,15 @@ if (isDevelopment) {
     // Connect Realtime Database emulator
     try {
       connectDatabaseEmulator(rtdb, databaseHost, databasePort);
+    } catch (emulatorError: any) {
+      if (!emulatorError.message?.includes('already been called')) {
+        throw emulatorError;
+      }
+    }
+
+    // Connect Storage emulator
+    try {
+      connectStorageEmulator(storage, storageHost, storagePort);
     } catch (emulatorError: any) {
       if (!emulatorError.message?.includes('already been called')) {
         throw emulatorError;

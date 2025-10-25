@@ -16,6 +16,9 @@ export {
   removePresenceFromFirestore,
 } from "./presence";
 
+// Import messaging functions
+export { onChatMessageCreated, onGroupMessageCreated } from "./messaging";
+
 // For cost control, you can set the maximum number of containers that can be
 // running at the same time. This helps mitigate the impact of unexpected
 // traffic spikes by instead downgrading performance. This limit is a

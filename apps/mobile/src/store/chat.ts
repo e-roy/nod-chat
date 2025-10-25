@@ -2,12 +2,11 @@ import { create } from 'zustand';
 import { ChatMessage, Chat } from '@chatapp/shared';
 import {
   FirebaseTransport,
-  generateChatId,
   generateMessageId,
-} from '../messaging/firebaseTransport';
+} from '@/messaging/firebaseTransport';
 import { useAuthStore } from './auth';
 import { usePresenceStore } from './presence';
-import { typingManager } from '../messaging/typing';
+import { typingManager } from '@/messaging/typing';
 
 interface ChatState {
   chats: Chat[];
@@ -26,7 +25,11 @@ interface ChatActions {
   setCurrentChat: (chatId: string | null) => void;
   loadChats: () => Promise<void>;
   loadMessages: (chatId: string) => Promise<void>;
-  sendMessage: (chatId: string, text: string) => Promise<void>;
+  sendMessage: (
+    chatId: string,
+    text: string,
+    imageUrl?: string
+  ) => Promise<void>;
   createChat: (participantIds: string[]) => Promise<string>;
   clearError: () => void;
   disconnect: () => void;
@@ -183,7 +186,7 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
     }
   },
 
-  sendMessage: async (chatId: string, text: string) => {
+  sendMessage: async (chatId: string, text: string, imageUrl?: string) => {
     const { transport } = get();
     const { user } = useAuthStore.getState();
 
@@ -200,12 +203,11 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
         chatId,
         senderId: user.uid,
         text,
+        imageUrl: imageUrl || null,
         createdAt: Date.now(),
         status: 'sending',
         // For group messages, initialize readBy with sender
         readBy: isGroupMessage ? [user.uid] : undefined,
-        // imageUrl is optional and will be undefined for text messages
-        // This is handled in the transport layer
       };
 
       // Optimistically add message to local state

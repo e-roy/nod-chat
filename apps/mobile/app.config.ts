@@ -41,6 +41,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     assetBundlePatterns: ['**/*'],
     ios: {
       supportsTablet: true,
+      bundleIdentifier: 'com.chatapp.mobile',
     },
     android: {
       adaptiveIcon: {
@@ -48,12 +49,26 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: '#ffffff',
       },
       package: 'com.chatapp.mobile',
+      googleServicesFile: './GoogleService-Info.plist',
     },
     web: {
       favicon: './assets/favicon.png',
     },
+    plugins: [
+      [
+        'expo-notifications',
+        {
+          icon: './assets/icon.png',
+          color: '#3B82F6',
+          sounds: ['default'],
+        },
+      ],
+    ],
     extra: {
       firebase: firebaseConfig,
+      eas: {
+        projectId: process.env.EXPO_PUBLIC_PROJECT_ID || 'your-expo-project-id',
+      },
     },
   };
 };

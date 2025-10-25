@@ -10,6 +10,11 @@ import {
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseApp';
 import { User } from '@chatapp/shared';
+import {
+  initializeNotifications,
+  removeFCMToken,
+  cleanupNotificationListeners,
+} from '@/messaging/notifications';
 
 interface AuthState {
   user: User | null;
@@ -83,6 +88,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await createUserDocument(firebaseUser, displayName);
       const user = firebaseUserToUser(firebaseUser);
       set({ user, loading: false });
+
+      // Initialize push notifications (don't block on this)
+      initializeNotifications(firebaseUser.uid).catch(error => {
+        console.warn('Failed to initialize notifications:', error);
+      });
     } catch (error: any) {
       set({ error: error.message, loading: false });
       throw error;
@@ -110,6 +120,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user = firebaseUserToUser(firebaseUser);
       }
       set({ user, loading: false });
+
+      // Initialize push notifications (don't block on this)
+      initializeNotifications(firebaseUser.uid).catch(error => {
+        console.warn('Failed to initialize notifications:', error);
+      });
     } catch (error: any) {
       set({ error: error.message, loading: false });
       throw error;
@@ -120,9 +135,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ loading: true, error: null });
 
+      const { user } = get();
+
       // CRITICAL: Clean up ALL listeners BEFORE signing out to prevent permission errors
       const { useChatStore } = await import('./chat');
       const { usePresenceStore } = await import('./presence');
+
+      // Clean up notification listeners
+      cleanupNotificationListeners();
+
+      // Remove FCM token from Firestore (don't block on this)
+      if (user?.uid) {
+        removeFCMToken(user.uid).catch(error => {
+          console.warn('Failed to remove FCM token:', error);
+        });
+      }
 
       // Disconnect chat (which also cleans up presence)
       useChatStore.getState().disconnect();
@@ -185,6 +212,11 @@ onAuthStateChanged(auth, async firebaseUser => {
       }
 
       useAuthStore.setState({ user, loading: false });
+
+      // Initialize push notifications for persistent logins (don't block on this)
+      initializeNotifications(firebaseUser.uid).catch(error => {
+        console.warn('Failed to initialize notifications:', error);
+      });
     } catch (error) {
       console.error('Error fetching user data:', error);
       useAuthStore.setState({ loading: false });
@@ -192,6 +224,7 @@ onAuthStateChanged(auth, async firebaseUser => {
   } else {
     // User signed out - clean up all listeners immediately
     try {
+      cleanupNotificationListeners();
       const { useChatStore } = await import('./chat');
       const chatStore = useChatStore.getState();
       if (chatStore.transport) {

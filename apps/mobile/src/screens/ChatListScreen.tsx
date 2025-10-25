@@ -26,6 +26,39 @@ type ChatListScreenNavigationProp = NativeStackNavigationProp<
   'Main'
 >;
 
+// Component to display participant name with email lookup
+const ParticipantName: React.FC<{
+  chat: Chat;
+  user: { uid: string } | null;
+  getUserEmail: (userId: string) => Promise<string>;
+}> = ({ chat, user, getUserEmail }) => {
+  const [displayName, setDisplayName] = useState<string>('Loading...');
+
+  useEffect(() => {
+    const loadParticipantName = async () => {
+      if (chat.name) {
+        setDisplayName(chat.name);
+        return;
+      }
+
+      const otherParticipant = chat.participants.find(
+        (p: string) => p !== user?.uid
+      );
+
+      if (otherParticipant) {
+        const email = await getUserEmail(otherParticipant);
+        setDisplayName(email);
+      } else {
+        setDisplayName('Unknown User');
+      }
+    };
+
+    loadParticipantName();
+  }, [chat, getUserEmail, user?.uid]);
+
+  return <Text className="text-base font-semibold">{displayName}</Text>;
+};
+
 const ChatListScreen: React.FC = () => {
   const navigation = useNavigation<ChatListScreenNavigationProp>();
   const { user, signOut } = useAuthStore();
@@ -39,8 +72,7 @@ const ChatListScreen: React.FC = () => {
     // TODO: Re-enable when typing indicators work
     // typingUsers,
   } = useChatStore();
-  const { userPresence, subscribeToUserPresence, debugPresence } =
-    usePresenceStore();
+  const { userPresence, subscribeToUserPresence } = usePresenceStore();
   const [userEmails, setUserEmails] = useState<Map<string, string>>(new Map());
 
   // TODO: Re-enable typing indicators later
@@ -88,8 +120,8 @@ const ChatListScreen: React.FC = () => {
         setUserEmails(prev => new Map(prev).set(userId, email));
         return email;
       }
-    } catch (error) {
-      console.error('Error fetching user email:', error);
+    } catch (err) {
+      console.error('Error fetching user email:', err);
     }
 
     return userId; // Fallback to user ID if email not found
@@ -141,8 +173,8 @@ const ChatListScreen: React.FC = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-    } catch (error) {
-      console.error('Sign out error:', error);
+    } catch (err) {
+      console.error('Sign out error:', err);
     }
   };
 
@@ -159,41 +191,13 @@ const ChatListScreen: React.FC = () => {
     return `${days}d`;
   };
 
-  const getParticipantName = (chat: Chat) => {
-    if (chat.name) return chat.name;
-    const otherParticipant = chat.participants.find(
-      (p: string) => p !== user?.uid
-    );
-    return otherParticipant || 'Unknown User';
-  };
-
-  // Component to display participant name with email lookup
-  const ParticipantName: React.FC<{ chat: Chat }> = ({ chat }) => {
-    const [displayName, setDisplayName] = useState<string>('Loading...');
-
-    useEffect(() => {
-      const loadParticipantName = async () => {
-        if (chat.name) {
-          setDisplayName(chat.name);
-          return;
-        }
-
-        const otherParticipant = chat.participants.find(
-          (p: string) => p !== user?.uid
-        );
-
-        if (otherParticipant) {
-          const email = await getUserEmail(otherParticipant);
-          setDisplayName(email);
-        } else {
-          setDisplayName('Unknown User');
-        }
-      };
-
-      loadParticipantName();
-    }, [chat, user?.uid]);
-
-    return <Text className="text-base font-semibold">{displayName}</Text>;
+  // Helper function to generate initials from a name/email
+  const generateInitials = (name: string): string => {
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return words[0][0].toUpperCase();
   };
 
   const renderChatItem = ({ item }: { item: Chat }) => {
@@ -214,6 +218,21 @@ const ChatListScreen: React.FC = () => {
 
     // Show last message
     const lastMessageText = item.lastMessage?.text || 'No messages yet';
+
+    // Get initials for avatar
+    const getAvatarInitials = () => {
+      if (item.name) {
+        return generateInitials(item.name);
+      }
+      if (otherParticipant) {
+        const email = userEmails.get(otherParticipant);
+        if (email) {
+          const namePart = email.split('@')[0];
+          return generateInitials(namePart.replace(/[._-]/g, ' '));
+        }
+      }
+      return '?';
+    };
 
     const handleChatPress = async () => {
       // Get the participant email for navigation
@@ -236,9 +255,7 @@ const ChatListScreen: React.FC = () => {
         >
           <Box className="relative mr-3">
             <Avatar size="md">
-              <AvatarFallbackText>
-                {getParticipantName(item).charAt(0).toUpperCase()}
-              </AvatarFallbackText>
+              <AvatarFallbackText>{getAvatarInitials()}</AvatarFallbackText>
             </Avatar>
             {/* Presence Indicator */}
             {isOnline && (
@@ -251,7 +268,11 @@ const ChatListScreen: React.FC = () => {
               className="justify-between items-center mb-1"
               alignItems="center"
             >
-              <ParticipantName chat={item} />
+              <ParticipantName
+                chat={item}
+                user={user}
+                getUserEmail={getUserEmail}
+              />
               <Text className="text-xs text-neutral-500 dark:text-neutral-400">
                 {formatTime(lastMessageTime)}
               </Text>
