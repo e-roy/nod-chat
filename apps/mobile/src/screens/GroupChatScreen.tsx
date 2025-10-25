@@ -167,6 +167,15 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
     const prevMessage = index > 0 ? chatMessages[index - 1] : null;
     const showAvatar = !prevMessage || prevMessage.senderId !== item.senderId;
 
+    // Get sender photo URL
+    let senderPhotoURL: string | undefined;
+    if (isOwnMessage) {
+      senderPhotoURL = user?.photoURL;
+    } else {
+      const cachedUser = userCache.get(item.senderId);
+      senderPhotoURL = cachedUser?.photoURL;
+    }
+
     // Get online status for sender
     const isOnline = userPresence.get(item.senderId)?.online || false;
 
@@ -190,6 +199,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
         isOwnMessage={isOwnMessage}
         showAvatar={showAvatar}
         senderName={senderName}
+        senderPhotoURL={senderPhotoURL}
         isOnline={isOnline}
         onImagePress={() => {}} // Group chat doesn't support images yet
         onRetry={handleRetryMessage}

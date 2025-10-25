@@ -3,4 +3,3 @@ packages:
   - packages/*
   - services/*
   - infra/*
-  - scripts

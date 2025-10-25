@@ -94,8 +94,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         console.warn('Failed to initialize notifications:', error);
       });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
-      throw error;
+      // Extract Firebase error code from the error object
+      const errorCode = error.code || error.message;
+      set({ error: errorCode, loading: false });
+      // Don't throw the error - let the UI handle it via the error state
     }
   },
 
@@ -126,8 +128,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         console.warn('Failed to initialize notifications:', error);
       });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
-      throw error;
+      // Extract Firebase error code from the error object
+      const errorCode = error.code || error.message;
+      set({ error: errorCode, loading: false });
+      // Don't throw the error - let the UI handle it via the error state
     }
   },
 
@@ -163,8 +167,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await signOut(auth);
       set({ user: null, loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
-      throw error;
+      // Extract Firebase error code from the error object
+      const errorCode = error.code || error.message;
+      set({ error: errorCode, loading: false });
+      // Don't throw the error - let the UI handle it via the error state
     }
   },
 
@@ -186,8 +192,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       set({ user: { ...user, ...updates }, loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
-      throw error;
+      // Extract Firebase error code from the error object
+      const errorCode = error.code || error.message;
+      set({ error: errorCode, loading: false });
+      // Don't throw the error - let the UI handle it via the error state
     }
   },
 

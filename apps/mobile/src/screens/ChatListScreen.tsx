@@ -32,6 +32,9 @@ const ChatListScreen: React.FC = () => {
   const [userDisplayNames, setUserDisplayNames] = useState<Map<string, string>>(
     new Map()
   );
+  const [userPhotoURLs, setUserPhotoURLs] = useState<Map<string, string>>(
+    new Map()
+  );
 
   // TODO: Re-enable typing indicators later
   // Function to subscribe to typing indicator for a specific chat
@@ -77,6 +80,14 @@ const ChatListScreen: React.FC = () => {
         // Prefer displayName, fallback to email, then userId
         const displayName = userData.displayName || userData.email || userId;
         setUserDisplayNames(prev => new Map(prev).set(userId, displayName));
+
+        // Also cache photoURL if available
+        if (userData.photoURL) {
+          setUserPhotoURLs(prev =>
+            new Map(prev).set(userId, userData.photoURL)
+          );
+        }
+
         return displayName;
       }
     } catch (err) {
@@ -135,6 +146,7 @@ const ChatListScreen: React.FC = () => {
       user={user}
       userPresence={userPresence}
       userDisplayNames={userDisplayNames}
+      userPhotoURLs={userPhotoURLs}
       getUserDisplayName={getUserDisplayName}
     />
   );

@@ -23,6 +23,8 @@
     "emulators": "firebase emulators:start",
     "emulators:auth": "firebase emulators:start --only auth",
     "emulators:firestore": "firebase emulators:start --only firestore",
-    "seed": "pnpm --filter @chatapp/scripts seed"
+    "seed": "pnpm --filter @chatapp/scripts seed",
+    "seed:chats": "pnpm --filter @chatapp/scripts seed:chats",
+    "seed:groups": "pnpm --filter @chatapp/scripts seed:groups"
   }
 }

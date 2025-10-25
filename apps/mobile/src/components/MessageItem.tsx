@@ -19,6 +19,7 @@ interface MessageItemProps {
   isOwnMessage: boolean;
   showAvatar: boolean;
   senderName: string;
+  senderPhotoURL?: string;
   isOnline: boolean;
   onImagePress: (imageUrl: string) => void;
   onRetry: (messageId: string) => void;
@@ -32,6 +33,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   isOwnMessage,
   showAvatar,
   senderName,
+  senderPhotoURL,
   isOnline,
   onImagePress,
   onRetry,
@@ -67,7 +69,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
         {showAvatar && (
           <>
             <Avatar size="sm">
-              <AvatarFallbackText>{senderName.charAt(0)}</AvatarFallbackText>
+              {senderPhotoURL ? (
+                <AvatarImage source={{ uri: senderPhotoURL }} />
+              ) : (
+                <AvatarFallbackText>{senderName.charAt(0)}</AvatarFallbackText>
+              )}
             </Avatar>
             {/* Online indicator */}
             {isOnline && (
@@ -154,12 +160,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 <HStack className="items-center gap-0.5" space="xs">
                   {readByUsers.slice(0, 3).map(user => (
                     <Avatar key={user.uid} size="xs">
-                      {user.photoURL && (
+                      {user.photoURL ? (
                         <AvatarImage source={{ uri: user.photoURL }} />
+                      ) : (
+                        <AvatarFallbackText>
+                          {user.displayName?.charAt(0) || '?'}
+                        </AvatarFallbackText>
                       )}
-                      <AvatarFallbackText>
-                        {user.displayName?.charAt(0) || '?'}
-                      </AvatarFallbackText>
                     </Avatar>
                   ))}
                   {readByUsers.length > 3 && (

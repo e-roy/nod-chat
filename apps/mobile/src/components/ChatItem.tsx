@@ -3,7 +3,7 @@ import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/types/navigation';
-import { Avatar, AvatarFallbackText } from '@ui/avatar';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@ui/avatar';
 import { Text } from '@ui/text';
 import { Box } from '@ui/box';
 import { VStack } from '@ui/vstack';
@@ -21,6 +21,7 @@ interface ChatItemProps {
   user: { uid: string } | null;
   userPresence: Map<string, { online: boolean; lastSeen: number }>;
   userDisplayNames: Map<string, string>;
+  userPhotoURLs: Map<string, string>;
   getUserDisplayName: (userId: string) => Promise<string>;
 }
 
@@ -62,6 +63,7 @@ const ChatItem: React.FC<ChatItemProps> = ({
   user,
   userPresence,
   userDisplayNames,
+  userPhotoURLs,
   getUserDisplayName,
 }) => {
   const navigation = useNavigation<ChatItemNavigationProp>();
@@ -123,7 +125,13 @@ const ChatItem: React.FC<ChatItemProps> = ({
       >
         <Box className="relative mr-3">
           <Avatar size="md">
-            <AvatarFallbackText>{getAvatarInitials()}</AvatarFallbackText>
+            {otherParticipant && userPhotoURLs.has(otherParticipant) ? (
+              <AvatarImage
+                source={{ uri: userPhotoURLs.get(otherParticipant)! }}
+              />
+            ) : (
+              <AvatarFallbackText>{getAvatarInitials()}</AvatarFallbackText>
+            )}
           </Avatar>
           {/* Presence Indicator */}
           {isOnline && (

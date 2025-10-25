@@ -10,11 +10,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '@/types/navigation';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/firebase/firebaseApp';
 
 import { useChatStore } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
 import { usePresenceStore } from '@/store/presence';
-import { ChatMessage } from '@chatapp/shared';
+import { ChatMessage, User } from '@chatapp/shared';
 import MessageInput from '@/components/MessageInput';
 import MessageItem from '@/components/MessageItem';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
@@ -40,9 +42,44 @@ const ChatScreen: React.FC = () => {
 
   const [messageText, setMessageText] = useState('');
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
+  const [userCache, setUserCache] = useState<Map<string, User>>(new Map());
   const flatListRef = useRef<FlatList>(null);
 
   const chatMessages = messages.get(chatId) || [];
+
+  // Load participant user data
+  useEffect(() => {
+    const loadParticipantData = async () => {
+      if (!user) return;
+
+      // Get all unique sender IDs from messages
+      const senderIds = Array.from(
+        new Set(chatMessages.map(msg => msg.senderId))
+      ).filter(id => id !== user.uid);
+
+      // Load user data for senders not in cache
+      const userIdsToLoad = senderIds.filter(id => !userCache.has(id));
+      if (userIdsToLoad.length === 0) return;
+
+      try {
+        const newUserCache = new Map(userCache);
+        for (const userId of userIdsToLoad) {
+          const userRef = doc(db, 'users', userId);
+          const userDoc = await getDoc(userRef);
+
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as User;
+            newUserCache.set(userId, userData);
+          }
+        }
+        setUserCache(newUserCache);
+      } catch (error) {
+        console.error('Error loading participant data:', error);
+      }
+    };
+
+    loadParticipantData();
+  }, [chatMessages, user, userCache]);
 
   useEffect(() => {
     setCurrentChat(chatId);
@@ -121,8 +158,27 @@ const ChatScreen: React.FC = () => {
     const prevMessage = index > 0 ? chatMessages[index - 1] : null;
     const showAvatar = !prevMessage || prevMessage.senderId !== item.senderId;
 
-    // Get sender name and online status
-    const senderName = isOwnMessage ? 'You' : participantName || 'Unknown';
+    // Get sender name and photo URL
+    let senderName = 'Unknown';
+    let senderPhotoURL: string | undefined;
+
+    if (isOwnMessage) {
+      senderName = 'You';
+      senderPhotoURL = user?.photoURL;
+    } else {
+      const cachedUser = userCache.get(item.senderId);
+      if (cachedUser) {
+        senderName =
+          cachedUser.displayName ||
+          cachedUser.email?.split('@')[0] ||
+          participantName ||
+          'Unknown';
+        senderPhotoURL = cachedUser.photoURL;
+      } else {
+        senderName = participantName || 'Unknown';
+      }
+    }
+
     const isOnline = !isOwnMessage
       ? userPresence.get(item.senderId)?.online || false
       : userPresence.get(user?.uid || '')?.online || false;
@@ -133,6 +189,7 @@ const ChatScreen: React.FC = () => {
         isOwnMessage={isOwnMessage}
         showAvatar={showAvatar}
         senderName={senderName}
+        senderPhotoURL={senderPhotoURL}
         isOnline={isOnline}
         onImagePress={setFullScreenImage}
         onRetry={handleRetryMessage}

@@ -78,10 +78,11 @@ const GroupMemberAvatars: React.FC<GroupMemberAvatarsProps> = ({
               borderColor: 'white',
             }}
           >
-            {member?.photoURL && (
+            {member?.photoURL ? (
               <AvatarImage source={{ uri: member.photoURL }} />
+            ) : (
+              <AvatarFallbackText>{displayName.charAt(0)}</AvatarFallbackText>
             )}
-            <AvatarFallbackText>{displayName.charAt(0)}</AvatarFallbackText>
           </Avatar>
         );
       })}

@@ -134,13 +134,16 @@ const GroupCreateScreen = () => {
             </Checkbox>
 
             <Avatar size="md">
-              <AvatarImage
-                source={{ uri: item.photoURL }}
-                alt={item.displayName || item.email}
-              />
-              <AvatarFallbackText>
-                {item.displayName || item.email}
-              </AvatarFallbackText>
+              {item.photoURL ? (
+                <AvatarImage
+                  source={{ uri: item.photoURL }}
+                  alt={item.displayName || item.email}
+                />
+              ) : (
+                <AvatarFallbackText>
+                  {item.displayName || item.email}
+                </AvatarFallbackText>
+              )}
             </Avatar>
 
             <VStack flex={1}>
