@@ -17,10 +17,10 @@ const AppContent: React.FC = () => {
   }, [initializeTheme]);
 
   return (
-    <View className={isDark ? 'dark' : ''} style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <GluestackUIProvider mode={mode}>
         <AppNavigator />
-        <StatusBar style="auto" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
       </GluestackUIProvider>
     </View>
   );
