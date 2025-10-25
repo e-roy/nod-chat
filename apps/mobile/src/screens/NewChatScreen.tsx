@@ -80,12 +80,16 @@ const NewChatScreen: React.FC = () => {
         return;
       }
 
+      // Get user info to pass display name
+      const userInfo = await transport.getUserInfo(participantId);
+      const participantName = userInfo?.displayName || participantEmail;
+
       const chatId = await createChat([participantId]);
 
       if (chatId) {
         navigation.navigate('Chat', {
           chatId,
-          participantName: participantEmail,
+          participantName,
         });
       }
     } catch (error) {

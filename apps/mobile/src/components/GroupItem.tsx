@@ -3,13 +3,13 @@ import { Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/types/navigation';
-import { Avatar, AvatarImage, AvatarFallbackText } from '@ui/avatar';
 import { Box } from '@ui/box';
 import { HStack } from '@ui/hstack';
 import { Text } from '@ui/text';
 import { VStack } from '@ui/vstack';
 import { Group } from '@chatapp/shared';
 import { formatTime } from '@/utils';
+import GroupMemberAvatars from './GroupMemberAvatars';
 
 type GroupItemNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -36,10 +36,11 @@ const GroupItem: React.FC<GroupItemProps> = ({ group }) => {
     <Pressable onPress={handleGroupPress}>
       <Box className="p-4 border-b border-neutral-200 dark:border-neutral-700">
         <HStack space="md" alignItems="center">
-          <Avatar size="lg">
-            <AvatarImage source={{ uri: group.photoURL }} alt={group.name} />
-            <AvatarFallbackText>{group.name}</AvatarFallbackText>
-          </Avatar>
+          <GroupMemberAvatars
+            memberIds={group.members}
+            size="md"
+            maxDisplay={3}
+          />
 
           <VStack flex={1} space="xs">
             <HStack justifyContent="between" alignItems="center">

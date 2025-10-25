@@ -2,10 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import {
   NavigationContainer,
   NavigationContainerRef,
+  useNavigation,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MessageCircle, Users, Settings } from 'lucide-react-native';
+import { MessageCircle, Users, Settings, Plus } from 'lucide-react-native';
+import { TouchableOpacity } from 'react-native';
 
 import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
@@ -31,6 +33,38 @@ import GroupCreateScreen from '@/screens/GroupCreateScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+const NewChatButton = () => {
+  const navigation = useNavigation<any>();
+  const colors = useNavigationTheme();
+
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.navigate('NewChat')}
+      style={{ marginRight: 16 }}
+      accessibilityLabel="Create new chat"
+      accessibilityRole="button"
+    >
+      <Plus size={24} color={colors.headerTitle} />
+    </TouchableOpacity>
+  );
+};
+
+const CreateGroupButton = () => {
+  const navigation = useNavigation<any>();
+  const colors = useNavigationTheme();
+
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.navigate('GroupCreate')}
+      style={{ marginRight: 16 }}
+      accessibilityLabel="Create new group"
+      accessibilityRole="button"
+    >
+      <Plus size={24} color={colors.headerTitle} />
+    </TouchableOpacity>
+  );
+};
 
 const MainTabs = () => {
   const colors = useNavigationTheme();
@@ -75,6 +109,7 @@ const MainTabs = () => {
           ),
           tabBarAccessibilityLabel: 'Chats tab',
           headerTitle: 'Messages',
+          headerRight: () => <NewChatButton />,
         }}
       />
       <Tab.Screen
@@ -85,6 +120,7 @@ const MainTabs = () => {
           tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
           tabBarAccessibilityLabel: 'Groups tab',
           headerTitle: 'Groups',
+          headerRight: () => <CreateGroupButton />,
         }}
       />
       <Tab.Screen

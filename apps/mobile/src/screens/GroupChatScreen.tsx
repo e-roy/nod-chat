@@ -1,22 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableOpacity,
-} from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import {
-  Clock,
-  Check,
-  CheckCheck,
-  AlertCircle,
-  RefreshCw,
-} from 'lucide-react-native';
 
-import { Avatar, AvatarImage, AvatarFallbackText } from '@ui/avatar';
 import { Box } from '@ui/box';
 import { Text } from '@ui/text';
 import { HStack } from '@ui/hstack';
@@ -26,9 +13,12 @@ import { Spinner } from '@ui/spinner';
 import { useChatStore } from '@/store/chat';
 import { useGroupStore } from '@/store/groups';
 import { useAuthStore } from '@/store/auth';
+import { usePresenceStore } from '@/store/presence';
 import { ChatMessage, User } from '@chatapp/shared';
 import { RootStackParamList } from '@/types/navigation';
 import MessageInput from '@/components/MessageInput';
+import MessageItem from '@/components/MessageItem';
+import GroupMemberAvatars from '@/components/GroupMemberAvatars';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
 
 import { db } from '@/firebase/firebaseApp';
@@ -51,6 +41,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
   } = useChatStore();
   const { groups, initializeTransport } = useGroupStore();
   const { user } = useAuthStore();
+  const { userPresence } = usePresenceStore();
 
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
@@ -142,11 +133,6 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
     }
   };
 
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
   const getSenderName = (senderId: string) => {
     if (senderId === user?.uid) return 'You';
 
@@ -159,26 +145,6 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
     return `User ${senderId.slice(-4)}`;
   };
 
-  const getMessageStatusIcon = (status: string) => {
-    const iconSize = 14;
-    const iconColor = status === 'read' ? '#3b82f6' : '#9ca3af';
-
-    switch (status) {
-      case 'sending':
-        return <Clock size={iconSize} color={iconColor} />;
-      case 'sent':
-        return <Check size={iconSize} color={iconColor} />;
-      case 'delivered':
-        return <CheckCheck size={iconSize} color={iconColor} />;
-      case 'read':
-        return <CheckCheck size={iconSize} color={iconColor} />;
-      case 'failed':
-        return <AlertCircle size={iconSize} color="#ef4444" />;
-      default:
-        return null;
-    }
-  };
-
   const handleRetryMessage = async (messageId: string) => {
     try {
       await retryMessage(messageId);
@@ -187,82 +153,55 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
     }
   };
 
-  const renderMessage = ({ item }: { item: ChatMessage }) => {
+  const renderMessage = ({
+    item,
+    index,
+  }: {
+    item: ChatMessage;
+    index: number;
+  }) => {
     const isOwnMessage = item.senderId === user?.uid;
     const senderName = getSenderName(item.senderId);
 
+    // Check if we should show avatar (first message or different sender than previous)
+    const prevMessage = index > 0 ? chatMessages[index - 1] : null;
+    const showAvatar = !prevMessage || prevMessage.senderId !== item.senderId;
+
+    // Get online status for sender
+    const isOnline = userPresence.get(item.senderId)?.online || false;
+
+    // Get users who have read this message (excluding current user)
+    const readByUsers = (item.readBy || [])
+      .filter(uid => uid !== user?.uid)
+      .map(uid => {
+        const cachedUser = userCache.get(uid);
+        return {
+          uid,
+          displayName:
+            cachedUser?.displayName || cachedUser?.email?.split('@')[0],
+          photoURL: cachedUser?.photoURL,
+        };
+      })
+      .filter(u => u.displayName); // Only include users we have data for
+
     return (
-      <Box
-        className={`p-3 mb-2 max-w-[80%] ${
-          isOwnMessage ? 'self-end' : 'self-start'
-        }`}
-      >
-        {!isOwnMessage && (
-          <Text className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
-            {senderName}
-          </Text>
-        )}
-
-        <Box
-          className={`px-3 py-2 rounded-xl ${
-            isOwnMessage
-              ? 'bg-blue-500 rounded-br-md'
-              : 'bg-neutral-200 dark:bg-neutral-700 rounded-bl-md'
-          }`}
-        >
-          <Text
-            className={`text-sm ${
-              isOwnMessage
-                ? 'text-white'
-                : 'text-neutral-900 dark:text-neutral-100'
-            }`}
-          >
-            {item.text}
-          </Text>
-        </Box>
-
-        <HStack
-          justifyContent={isOwnMessage ? 'end' : 'start'}
-          className="mt-1"
-          space="xs"
-          alignItems="center"
-        >
-          <Text className="text-xs text-neutral-500 dark:text-neutral-400">
-            {formatTime(item.createdAt)}
-          </Text>
-
-          {isOwnMessage && (
-            <HStack
-              className="items-center gap-1"
-              alignItems="center"
-              space="xs"
-            >
-              {getMessageStatusIcon(item.status || 'sent')}
-              {item.status === 'failed' && (
-                <TouchableOpacity
-                  onPress={() => handleRetryMessage(item.id)}
-                  className="ml-1"
-                >
-                  <RefreshCw size={14} color="#ef4444" />
-                </TouchableOpacity>
-              )}
-            </HStack>
-          )}
-        </HStack>
-
-        {!isOwnMessage && item.readBy && (
-          <Text className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-            Read by {item.readBy.length} member
-            {item.readBy.length !== 1 ? 's' : ''}
-          </Text>
-        )}
-      </Box>
+      <MessageItem
+        message={item}
+        isOwnMessage={isOwnMessage}
+        showAvatar={showAvatar}
+        senderName={senderName}
+        isOnline={isOnline}
+        onImagePress={() => {}} // Group chat doesn't support images yet
+        onRetry={handleRetryMessage}
+        isGroupChat={true}
+        readByUsers={readByUsers}
+      />
     );
   };
 
   if (!group) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SafeAreaView className="flex-1 bg-white dark:bg-neutral-900">
         <VStack className="flex-1 justify-center items-center">
           <Spinner size="large" />
           <Text className="mt-4 text-neutral-600 dark:text-neutral-300">
@@ -274,22 +213,28 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView
+      className="flex-1 bg-white dark:bg-neutral-900"
+      edges={['top']}
+    >
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Group Header */}
-        <Box className="p-4 border-b border-neutral-200 dark:border-neutral-700">
-          <HStack space="md" alignItems="center">
-            <Avatar size="lg">
-              <AvatarImage source={{ uri: group.photoURL }} alt={group.name} />
-              <AvatarFallbackText>{group.name}</AvatarFallbackText>
-            </Avatar>
+        <Box className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
+          <HStack className="px-4 py-3" space="md" alignItems="center">
+            <GroupMemberAvatars
+              memberIds={group.members}
+              size="sm"
+              maxDisplay={4}
+            />
 
             <VStack flex={1}>
-              <Text className="text-lg font-semibold">{group.name}</Text>
-              <Text className="text-sm text-neutral-600 dark:text-neutral-300">
+              <Text className="text-base font-semibold text-neutral-900 dark:text-white">
+                {group.name}
+              </Text>
+              <Text className="text-xs text-neutral-500 dark:text-neutral-400">
                 {group.members.length} member
                 {group.members.length !== 1 ? 's' : ''}
               </Text>
@@ -306,8 +251,8 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
           data={chatMessages}
           keyExtractor={item => item.id}
           renderItem={renderMessage}
-          className="flex-1"
-          contentContainerStyle={{ padding: 16 }}
+          className="flex-1 bg-white dark:bg-neutral-900"
+          contentContainerStyle={{ paddingVertical: 12 }}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
           }

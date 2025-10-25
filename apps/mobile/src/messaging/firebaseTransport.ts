@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  addDoc,
   setDoc,
   onSnapshot,
   query,
@@ -12,7 +11,6 @@ import {
   updateDoc,
   getDocs,
   getDoc,
-  Timestamp,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/firebase/firebaseApp';
@@ -49,7 +47,7 @@ export class FirebaseTransport
         msg.id
       );
 
-      // For group messages, initialize readBy with sender
+      // For group messages, readBy will be an empty array (populated when others read it)
       const messageData: any = {
         id: msg.id,
         chatId: msg.chatId,
@@ -334,6 +332,28 @@ export class FirebaseTransport
       return userData.uid;
     } catch (error) {
       console.error('Error finding user by email:', error);
+      return null;
+    }
+  }
+
+  async getUserInfo(
+    uid: string
+  ): Promise<{ displayName?: string; email: string } | null> {
+    try {
+      const userRef = doc(db, 'users', uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        return null;
+      }
+
+      const userData = userSnap.data();
+      return {
+        displayName: userData.displayName,
+        email: userData.email,
+      };
+    } catch (error) {
+      console.error('Error getting user info:', error);
       return null;
     }
   }

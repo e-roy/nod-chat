@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { ImagePlus, Camera, Image as ImageIcon } from 'lucide-react-native';
+import {
+  ImagePlus,
+  Camera,
+  Send,
+  Image as ImageIcon,
+} from 'lucide-react-native';
+import { TouchableOpacity } from 'react-native';
 import {
   Actionsheet,
   ActionsheetBackdrop,
@@ -9,7 +15,6 @@ import {
   ActionsheetItem,
   ActionsheetItemText,
 } from '@ui/actionsheet';
-import { Button, ButtonText } from '@ui/button';
 import { Input, InputField } from '@ui/input';
 import { HStack } from '@ui/hstack';
 import { Box } from '@ui/box';
@@ -80,37 +85,57 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <>
-      <HStack
-        className="items-center p-4 border-t border-neutral-200 dark:border-neutral-700 gap-2"
-        alignItems="center"
-      >
-        <Button
-          onPress={() => setShowImagePicker(true)}
-          size="md"
-          variant="outline"
-          className="px-3"
-          isDisabled={disabled}
-        >
-          <ImagePlus size={20} color="#6B7280" />
-        </Button>
-        <Input className="flex-1">
-          <InputField
-            placeholder="Type a message..."
-            value={messageText}
-            onChangeText={onMessageTextChange}
-            multiline
-            maxLength={1000}
-            editable={!disabled}
-          />
-        </Input>
-        <Button
-          onPress={onSendMessage}
-          disabled={!messageText.trim() || disabled}
-          size="md"
-        >
-          <ButtonText>Send</ButtonText>
-        </Button>
-      </HStack>
+      <Box className="bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 px-4 py-3">
+        <HStack className="items-center gap-3" alignItems="center">
+          {/* Attachment icons */}
+          <HStack className="items-center gap-2" alignItems="center">
+            <TouchableOpacity
+              onPress={() => setShowImagePicker(true)}
+              disabled={disabled}
+            >
+              <Box className="p-2 rounded-full">
+                <ImagePlus
+                  size={22}
+                  color="#6B7280"
+                  className="dark:text-neutral-400"
+                />
+              </Box>
+            </TouchableOpacity>
+          </HStack>
+
+          {/* Message input */}
+          <Input className="flex-1 bg-neutral-100 dark:bg-neutral-800 border-0">
+            <InputField
+              placeholder="Write a message"
+              value={messageText}
+              onChangeText={onMessageTextChange}
+              multiline
+              maxLength={1000}
+              editable={!disabled}
+              className="text-sm"
+            />
+          </Input>
+
+          {/* Send button */}
+          <TouchableOpacity
+            onPress={onSendMessage}
+            disabled={!messageText.trim() || disabled}
+          >
+            <Box
+              className={`p-2 rounded-full ${
+                messageText.trim() && !disabled
+                  ? 'bg-blue-600 dark:bg-blue-700'
+                  : 'bg-neutral-300 dark:bg-neutral-700'
+              }`}
+            >
+              <Send
+                size={20}
+                color={messageText.trim() && !disabled ? '#ffffff' : '#9CA3AF'}
+              />
+            </Box>
+          </TouchableOpacity>
+        </HStack>
+      </Box>
 
       {/* Upload Progress */}
       {uploadProgress && (

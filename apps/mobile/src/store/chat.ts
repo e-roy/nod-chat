@@ -213,8 +213,8 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       imageUrl: imageUrl || null,
       createdAt: Date.now(),
       status: 'sending',
-      // For group messages, initialize readBy with sender
-      readBy: isGroupMessage ? [user.uid] : undefined,
+      // For group messages, initialize readBy as empty (will be populated when others read it)
+      readBy: isGroupMessage ? [] : undefined,
     };
 
     // Optimistically add message to local state

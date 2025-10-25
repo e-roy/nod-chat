@@ -30,7 +30,7 @@ type GroupCreateScreenNavigationProp = NativeStackNavigationProp<
 
 const GroupCreateScreen = () => {
   const navigation = useNavigation<GroupCreateScreenNavigationProp>();
-  const { createGroup, loading, error, clearError } = useGroupStore();
+  const { createGroup } = useGroupStore();
   const { user } = useAuthStore();
 
   const [groupName, setGroupName] = useState('');
@@ -186,6 +186,15 @@ const GroupCreateScreen = () => {
               onChangeText={setGroupName}
             />
           </Input>
+          <Button
+            onPress={handleCreateGroup}
+            isDisabled={
+              creating || !groupName.trim() || selectedUsers.length === 0
+            }
+            className="mt-4"
+          >
+            <ButtonText>{creating ? 'Creating...' : 'Create Group'}</ButtonText>
+          </Button>
         </VStack>
 
         <VStack className="space-y-2">
@@ -197,20 +206,10 @@ const GroupCreateScreen = () => {
             data={availableUsers}
             keyExtractor={item => item.uid}
             renderItem={renderUserItem}
-            className="max-h-72"
+            className="h-[60vh]"
             showsVerticalScrollIndicator={false}
           />
         </VStack>
-
-        <Button
-          onPress={handleCreateGroup}
-          isDisabled={
-            creating || !groupName.trim() || selectedUsers.length === 0
-          }
-          className="mt-4"
-        >
-          <ButtonText>{creating ? 'Creating...' : 'Create Group'}</ButtonText>
-        </Button>
       </VStack>
     </SafeAreaView>
   );

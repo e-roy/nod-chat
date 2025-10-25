@@ -20,16 +20,16 @@ interface ChatItemProps {
   chat: Chat;
   user: { uid: string } | null;
   userPresence: Map<string, { online: boolean; lastSeen: number }>;
-  userEmails: Map<string, string>;
-  getUserEmail: (userId: string) => Promise<string>;
+  userDisplayNames: Map<string, string>;
+  getUserDisplayName: (userId: string) => Promise<string>;
 }
 
-// Component to display participant name with email lookup
+// Component to display participant name
 const ParticipantName: React.FC<{
   chat: Chat;
   user: { uid: string } | null;
-  getUserEmail: (userId: string) => Promise<string>;
-}> = ({ chat, user, getUserEmail }) => {
+  getUserDisplayName: (userId: string) => Promise<string>;
+}> = ({ chat, user, getUserDisplayName }) => {
   const [displayName, setDisplayName] = useState<string>('Loading...');
 
   useEffect(() => {
@@ -44,15 +44,15 @@ const ParticipantName: React.FC<{
       );
 
       if (otherParticipant) {
-        const email = await getUserEmail(otherParticipant);
-        setDisplayName(email);
+        const name = await getUserDisplayName(otherParticipant);
+        setDisplayName(name);
       } else {
         setDisplayName('Unknown User');
       }
     };
 
     loadParticipantName();
-  }, [chat, getUserEmail, user?.uid]);
+  }, [chat, getUserDisplayName, user?.uid]);
 
   return <Text className="text-base font-semibold">{displayName}</Text>;
 };
@@ -61,12 +61,12 @@ const ChatItem: React.FC<ChatItemProps> = ({
   chat,
   user,
   userPresence,
-  userEmails,
-  getUserEmail,
+  userDisplayNames,
+  getUserDisplayName,
 }) => {
   const navigation = useNavigation<ChatItemNavigationProp>();
 
-  // Helper function to generate initials from a name/email
+  // Helper function to generate initials from a name
   const generateInitials = (name: string): string => {
     const words = name.trim().split(/\s+/);
     if (words.length >= 2) {
@@ -94,20 +94,19 @@ const ChatItem: React.FC<ChatItemProps> = ({
       return generateInitials(chat.name);
     }
     if (otherParticipant) {
-      const email = userEmails.get(otherParticipant);
-      if (email) {
-        const namePart = email.split('@')[0];
-        return generateInitials(namePart.replace(/[._-]/g, ' '));
+      const displayName = userDisplayNames.get(otherParticipant);
+      if (displayName) {
+        return generateInitials(displayName);
       }
     }
     return '?';
   };
 
   const handleChatPress = async () => {
-    // Get the participant email for navigation
+    // Get the participant display name for navigation
     let participantName = 'Unknown User';
     if (otherParticipant) {
-      participantName = await getUserEmail(otherParticipant);
+      participantName = await getUserDisplayName(otherParticipant);
     }
 
     navigation.navigate('Chat', {
@@ -140,7 +139,7 @@ const ChatItem: React.FC<ChatItemProps> = ({
             <ParticipantName
               chat={chat}
               user={user}
-              getUserEmail={getUserEmail}
+              getUserDisplayName={getUserDisplayName}
             />
             <Text className="text-xs text-neutral-500 dark:text-neutral-400">
               {formatTime(lastMessageTime)}

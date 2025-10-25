@@ -1,13 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '@/types/navigation';
 import { Button, ButtonText } from '@ui/button';
 import { Text } from '@ui/text';
 import { VStack } from '@ui/vstack';
-import { HStack } from '@ui/hstack';
 import { useAuthStore } from '@/store/auth';
 import { useChatStore } from '@/store/chat';
 import { usePresenceStore } from '@/store/presence';
@@ -20,14 +16,8 @@ import ListSkeleton from '@/components/ListSkeleton';
 // import { ref, onValue } from 'firebase/database';
 // import { rtdb } from '../firebase/firebaseApp';
 
-type ChatListScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'Main'
->;
-
 const ChatListScreen: React.FC = () => {
-  const navigation = useNavigation<ChatListScreenNavigationProp>();
-  const { user, signOut } = useAuthStore();
+  const { user } = useAuthStore();
   const {
     chats,
     loading,
@@ -39,7 +29,9 @@ const ChatListScreen: React.FC = () => {
     // typingUsers,
   } = useChatStore();
   const { userPresence, subscribeToUserPresence } = usePresenceStore();
-  const [userEmails, setUserEmails] = useState<Map<string, string>>(new Map());
+  const [userDisplayNames, setUserDisplayNames] = useState<Map<string, string>>(
+    new Map()
+  );
 
   // TODO: Re-enable typing indicators later
   // Function to subscribe to typing indicator for a specific chat
@@ -70,10 +62,10 @@ const ChatListScreen: React.FC = () => {
   //   return unsubscribe;
   // };
 
-  // Function to get user email by user ID
-  const getUserEmail = async (userId: string): Promise<string> => {
-    if (userEmails.has(userId)) {
-      return userEmails.get(userId)!;
+  // Function to get user display name by user ID
+  const getUserDisplayName = async (userId: string): Promise<string> => {
+    if (userDisplayNames.has(userId)) {
+      return userDisplayNames.get(userId)!;
     }
 
     try {
@@ -82,15 +74,16 @@ const ChatListScreen: React.FC = () => {
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        const email = userData.email || userId;
-        setUserEmails(prev => new Map(prev).set(userId, email));
-        return email;
+        // Prefer displayName, fallback to email, then userId
+        const displayName = userData.displayName || userData.email || userId;
+        setUserDisplayNames(prev => new Map(prev).set(userId, displayName));
+        return displayName;
       }
     } catch (err) {
-      console.error('Error fetching user email:', err);
+      console.error('Error fetching user display name:', err);
     }
 
-    return userId; // Fallback to user ID if email not found
+    return userId; // Fallback to user ID if not found
   };
 
   useEffect(() => {
@@ -136,21 +129,13 @@ const ChatListScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chats, user]);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (err) {
-      console.error('Sign out error:', err);
-    }
-  };
-
   const renderChatItem = ({ item }: { item: Chat }) => (
     <ChatItem
       chat={item}
       user={user}
       userPresence={userPresence}
-      userEmails={userEmails}
-      getUserEmail={getUserEmail}
+      userDisplayNames={userDisplayNames}
+      getUserDisplayName={getUserDisplayName}
     />
   );
 
@@ -181,49 +166,25 @@ const ChatListScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-      <VStack className="flex-1">
-        {/* Header */}
-        <HStack
-          className="items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-700"
-          alignItems="center"
-        >
-          <VStack>
-            <Text className="text-2xl font-bold">Chats</Text>
-            <Text className="text-sm text-neutral-600 dark:text-neutral-300">
-              Welcome, {user?.displayName || user?.email || 'User'}!
+      {chats.length === 0 ? (
+        <VStack className="flex-1 justify-center items-center p-4">
+          <VStack className="items-center gap-4">
+            <Text className="text-lg text-neutral-600 dark:text-neutral-300 text-center">
+              No chats yet
+            </Text>
+            <Text className="text-sm text-neutral-500 dark:text-neutral-400 text-center">
+              Start a conversation with someone!
             </Text>
           </VStack>
-          <HStack className="gap-2" space="sm">
-            <Button onPress={() => navigation.navigate('NewChat')} size="sm">
-              <ButtonText>New Chat</ButtonText>
-            </Button>
-            <Button onPress={handleSignOut} variant="outline" size="sm">
-              <ButtonText>Sign Out</ButtonText>
-            </Button>
-          </HStack>
-        </HStack>
-
-        {/* Chat List */}
-        {chats.length === 0 ? (
-          <VStack className="flex-1 justify-center items-center p-4">
-            <VStack className="items-center gap-4">
-              <Text className="text-lg text-neutral-600 dark:text-neutral-300 text-center">
-                No chats yet
-              </Text>
-              <Text className="text-sm text-neutral-500 dark:text-neutral-400 text-center">
-                Start a conversation with someone!
-              </Text>
-            </VStack>
-          </VStack>
-        ) : (
-          <FlatList
-            data={chats}
-            keyExtractor={item => item.id}
-            renderItem={renderChatItem}
-            className="flex-1"
-          />
-        )}
-      </VStack>
+        </VStack>
+      ) : (
+        <FlatList
+          data={chats}
+          keyExtractor={item => item.id}
+          renderItem={renderChatItem}
+          className="flex-1"
+        />
+      )}
     </SafeAreaView>
   );
 };
