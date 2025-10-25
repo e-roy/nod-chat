@@ -1,8 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import {
+  Clock,
+  Check,
+  CheckCheck,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react-native';
 
 import { Avatar, AvatarImage, AvatarFallbackText } from '@ui/avatar';
 import { Box } from '@ui/box';
@@ -17,6 +29,7 @@ import { useAuthStore } from '@/store/auth';
 import { ChatMessage, User } from '@chatapp/shared';
 import { RootStackParamList } from '@/types/navigation';
 import MessageInput from '@/components/MessageInput';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
 
 import { db } from '@/firebase/firebaseApp';
 
@@ -33,6 +46,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
     sendMessage,
     loadMessages,
     markMessagesAsRead,
+    retryMessage,
     initializeTransport: initializeChatTransport,
   } = useChatStore();
   const { groups, initializeTransport } = useGroupStore();
@@ -145,6 +159,34 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
     return `User ${senderId.slice(-4)}`;
   };
 
+  const getMessageStatusIcon = (status: string) => {
+    const iconSize = 14;
+    const iconColor = status === 'read' ? '#3b82f6' : '#9ca3af';
+
+    switch (status) {
+      case 'sending':
+        return <Clock size={iconSize} color={iconColor} />;
+      case 'sent':
+        return <Check size={iconSize} color={iconColor} />;
+      case 'delivered':
+        return <CheckCheck size={iconSize} color={iconColor} />;
+      case 'read':
+        return <CheckCheck size={iconSize} color={iconColor} />;
+      case 'failed':
+        return <AlertCircle size={iconSize} color="#ef4444" />;
+      default:
+        return null;
+    }
+  };
+
+  const handleRetryMessage = async (messageId: string) => {
+    try {
+      await retryMessage(messageId);
+    } catch (error) {
+      console.error('Error retrying message:', error);
+    }
+  };
+
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isOwnMessage = item.senderId === user?.uid;
     const senderName = getSenderName(item.senderId);
@@ -183,21 +225,28 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
           justifyContent={isOwnMessage ? 'end' : 'start'}
           className="mt-1"
           space="xs"
+          alignItems="center"
         >
           <Text className="text-xs text-neutral-500 dark:text-neutral-400">
             {formatTime(item.createdAt)}
           </Text>
 
           {isOwnMessage && (
-            <Text className="text-xs text-neutral-500 dark:text-neutral-400">
-              {item.status === 'sending'
-                ? 'Sending...'
-                : item.status === 'sent'
-                  ? 'Sent'
-                  : item.status === 'read'
-                    ? 'Read'
-                    : 'Delivered'}
-            </Text>
+            <HStack
+              className="items-center gap-1"
+              alignItems="center"
+              space="xs"
+            >
+              {getMessageStatusIcon(item.status || 'sent')}
+              {item.status === 'failed' && (
+                <TouchableOpacity
+                  onPress={() => handleRetryMessage(item.id)}
+                  className="ml-1"
+                >
+                  <RefreshCw size={14} color="#ef4444" />
+                </TouchableOpacity>
+              )}
+            </HStack>
           )}
         </HStack>
 
@@ -247,6 +296,9 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
             </VStack>
           </HStack>
         </Box>
+
+        {/* Connection Status Banner */}
+        <ConnectionBanner />
 
         {/* Messages */}
         <FlatList

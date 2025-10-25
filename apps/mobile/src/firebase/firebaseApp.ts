@@ -48,6 +48,8 @@ const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage),
 });
 
+// Initialize Firestore with offline persistence enabled by default
+// Note: For React Native, Firestore persistence is enabled by default
 const db = getFirestore(app);
 const storage = getStorage(app);
 const rtdb = getDatabase(app);

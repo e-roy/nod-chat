@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useAuthStore } from '../store/auth';
 import { usePresenceStore } from '../store/presence';
 import { useChatStore } from '../store/chat';
+import { useOutboxStore } from '../store/outbox';
 
 interface PresenceInitializerProps {
   children: React.ReactNode;
@@ -32,6 +33,14 @@ export const PresenceInitializer: React.FC<PresenceInitializerProps> = ({
 
       // Load chats for this user
       loadChats();
+
+      // Crash recovery: Retry any pending messages from previous session
+      setTimeout(() => {
+        const { retryOutbox } = useOutboxStore.getState();
+        retryOutbox().catch(error => {
+          console.error('Error retrying outbox messages:', error);
+        });
+      }, 1000); // Wait 1s for transport and network to be ready
     }
 
     // Cleanup on unmount only if user is still logged in

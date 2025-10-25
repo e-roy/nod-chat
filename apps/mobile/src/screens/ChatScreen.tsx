@@ -10,17 +10,26 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '@/types/navigation';
+import {
+  Clock,
+  Check,
+  CheckCheck,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react-native';
 
 import { Avatar, AvatarFallbackText } from '@ui/avatar';
 import { Text } from '@ui/text';
 import { Box } from '@ui/box';
 import { VStack } from '@ui/vstack';
 import { HStack } from '@ui/hstack';
+import { Button, ButtonIcon } from '@ui/button';
 import { useChatStore } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
 import { usePresenceStore } from '@/store/presence';
 import { ChatMessage } from '@chatapp/shared';
 import MessageInput from '@/components/MessageInput';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
 
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
 
@@ -33,6 +42,7 @@ const ChatScreen: React.FC = () => {
     sendMessage,
     loadMessages,
     setCurrentChat,
+    retryMessage,
     // TODO: Re-enable when typing indicators work
     // typingUsers,
     // startTyping,
@@ -103,17 +113,30 @@ const ChatScreen: React.FC = () => {
   };
 
   const getMessageStatusIcon = (status: string) => {
+    const iconSize = 14;
+    const iconColor = status === 'read' ? '#3b82f6' : '#9ca3af';
+
     switch (status) {
       case 'sending':
-        return '⏳';
+        return <Clock size={iconSize} color={iconColor} />;
       case 'sent':
-        return '✓';
+        return <Check size={iconSize} color={iconColor} />;
       case 'delivered':
-        return '✓✓';
+        return <CheckCheck size={iconSize} color={iconColor} />;
       case 'read':
-        return '✓✓';
+        return <CheckCheck size={iconSize} color={iconColor} />;
+      case 'failed':
+        return <AlertCircle size={iconSize} color="#ef4444" />;
       default:
-        return '';
+        return null;
+    }
+  };
+
+  const handleRetryMessage = async (messageId: string) => {
+    try {
+      await retryMessage(messageId);
+    } catch (error) {
+      console.error('Error retrying message:', error);
     }
   };
 
@@ -164,7 +187,7 @@ const ChatScreen: React.FC = () => {
               </Text>
             )}
           </Box>
-          <HStack className="items-center mt-1 gap-1" alignItems="center">
+          <HStack className="items-center mt-1 gap-2" alignItems="center">
             <Text className="text-xs text-neutral-500 dark:text-neutral-400">
               {new Date(item.createdAt).toLocaleTimeString([], {
                 hour: '2-digit',
@@ -172,15 +195,17 @@ const ChatScreen: React.FC = () => {
               })}
             </Text>
             {isOwnMessage && (
-              <Text
-                className={`text-xs ${
-                  item.status === 'read'
-                    ? 'text-blue-500 font-bold'
-                    : 'text-neutral-500 dark:text-neutral-400'
-                }`}
-              >
+              <HStack className="items-center gap-1" alignItems="center">
                 {getMessageStatusIcon(item.status || 'sent')}
-              </Text>
+                {item.status === 'failed' && (
+                  <TouchableOpacity
+                    onPress={() => handleRetryMessage(item.id)}
+                    className="ml-1"
+                  >
+                    <RefreshCw size={14} color="#ef4444" />
+                  </TouchableOpacity>
+                )}
+              </HStack>
             )}
           </HStack>
         </VStack>
@@ -261,6 +286,9 @@ const ChatScreen: React.FC = () => {
             </VStack>
           </HStack>
         </HStack>
+
+        {/* Connection Status Banner */}
+        <ConnectionBanner />
 
         {/* Messages */}
         <FlatList

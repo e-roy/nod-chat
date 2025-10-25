@@ -7,6 +7,8 @@ import {
 import { useAuthStore } from './auth';
 import { usePresenceStore } from './presence';
 import { typingManager } from '@/messaging/typing';
+import { useNetworkStore } from './network';
+import { useOutboxStore } from './outbox';
 
 interface ChatState {
   chats: Chat[];
@@ -30,6 +32,7 @@ interface ChatActions {
     text: string,
     imageUrl?: string
   ) => Promise<void>;
+  retryMessage: (messageId: string) => Promise<void>;
   createChat: (participantIds: string[]) => Promise<string>;
   clearError: () => void;
   disconnect: () => void;
@@ -178,6 +181,11 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
           const updatedMessages = new Map(currentMessages);
           updatedMessages.set(chatId, updatedChatMessages);
           set({ messages: updatedMessages });
+
+          // If this is our own message and it's now sent, remove from outbox
+          if (message.senderId === user.uid && message.status === 'sent') {
+            useOutboxStore.getState().removeFromOutbox(message.id);
+          }
         }
       });
     } catch (error) {
@@ -194,35 +202,94 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       return;
     }
 
+    const messageId = generateMessageId();
+    const isGroupMessage = chatId.startsWith('group_');
+
+    const message: ChatMessage = {
+      id: messageId,
+      chatId,
+      senderId: user.uid,
+      text,
+      imageUrl: imageUrl || null,
+      createdAt: Date.now(),
+      status: 'sending',
+      // For group messages, initialize readBy with sender
+      readBy: isGroupMessage ? [user.uid] : undefined,
+    };
+
+    // Optimistically add message to local state
+    const { messages } = get();
+    const chatMessages = messages.get(chatId) || [];
+    const newMessages = new Map(messages);
+    newMessages.set(chatId, [...chatMessages, message]);
+    set({ messages: newMessages });
+
+    // Check network status
+    const isOnline = useNetworkStore.getState().isOnline();
+
+    if (!isOnline) {
+      // Add to outbox for later retry
+      await useOutboxStore.getState().addToOutbox(message);
+      console.log('Offline: Message queued for sending when online');
+      return;
+    }
+
+    // Try to send
     try {
-      const messageId = generateMessageId();
-      const isGroupMessage = chatId.startsWith('group_');
-
-      const message: ChatMessage = {
-        id: messageId,
-        chatId,
-        senderId: user.uid,
-        text,
-        imageUrl: imageUrl || null,
-        createdAt: Date.now(),
-        status: 'sending',
-        // For group messages, initialize readBy with sender
-        readBy: isGroupMessage ? [user.uid] : undefined,
-      };
-
-      // Optimistically add message to local state
-      const { messages } = get();
-      const chatMessages = messages.get(chatId) || [];
-      const newMessages = new Map(messages);
-      newMessages.set(chatId, [...chatMessages, message]);
-      set({ messages: newMessages });
-
-      // Send to Firebase
       await transport.send(message);
       // Note: Status will be updated via the real-time listener
     } catch (error) {
       console.error('Error sending message:', error);
-      set({ error: 'Failed to send message' });
+      // Add to outbox for retry
+      await useOutboxStore.getState().addToOutbox(message);
+    }
+  },
+
+  retryMessage: async (messageId: string) => {
+    const { transport, messages } = get();
+    const { user } = useAuthStore.getState();
+
+    if (!transport || !user) {
+      return;
+    }
+
+    // Find the message in our local state
+    let message: ChatMessage | undefined;
+    let chatId: string | undefined;
+
+    for (const [cId, msgs] of messages.entries()) {
+      const found = msgs.find(m => m.id === messageId);
+      if (found) {
+        message = found;
+        chatId = cId;
+        break;
+      }
+    }
+
+    if (!message || !chatId) {
+      console.error('Message not found for retry');
+      return;
+    }
+
+    // Update status to sending
+    const chatMessages = messages.get(chatId) || [];
+    const messageIndex = chatMessages.findIndex(m => m.id === messageId);
+    if (messageIndex !== -1) {
+      const updatedMessages = [...chatMessages];
+      updatedMessages[messageIndex] = { ...message, status: 'sending' };
+      const newMessagesMap = new Map(messages);
+      newMessagesMap.set(chatId, updatedMessages);
+      set({ messages: newMessagesMap });
+    }
+
+    // Try to send
+    try {
+      await transport.send(message);
+      // Remove from outbox on success
+      await useOutboxStore.getState().removeFromOutbox(messageId);
+    } catch (error) {
+      console.error('Error retrying message:', error);
+      // Keep in outbox for automatic retry
     }
   },
 

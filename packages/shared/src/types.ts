@@ -15,7 +15,7 @@ export interface ChatMessage {
   text?: string;
   imageUrl?: string | null;
   createdAt: number; // ms epoch
-  status?: "sending" | "sent" | "delivered" | "read";
+  status?: "sending" | "sent" | "delivered" | "read" | "failed";
   readBy?: string[]; // array of user IDs who have read this message (for groups)
 }
 
