@@ -20,6 +20,8 @@ interface ChatState {
   chatListenerActive: boolean;
   chatListenerUnsubscribe: (() => void) | null;
   typingUsers: Map<string, string[]>; // chatId -> array of typing user IDs
+  highlightedMessageId: string | null;
+  highlightType: 'calendar' | 'priority-high' | 'priority-urgent' | null;
 }
 
 interface ChatActions {
@@ -40,7 +42,42 @@ interface ChatActions {
   startTyping: () => void;
   stopTyping: () => void;
   setTypingUsers: (typingUsers: Map<string, string[]>) => void;
+  scrollToMessage: (
+    chatId: string,
+    messageId: string,
+    type?: 'calendar' | 'priority-high' | 'priority-urgent'
+  ) => Promise<void>;
+  clearHighlight: () => void;
 }
+
+// Store for FlatList refs - we'll use this to access the refs from anywhere
+const flatListRefs = new Map<string, React.RefObject<any>>();
+
+export const registerFlatListRef = (
+  chatId: string,
+  ref: React.RefObject<any>
+) => {
+  flatListRefs.set(chatId, ref);
+};
+
+export const scrollToMessageById = async (
+  chatId: string,
+  messageId: string
+) => {
+  const ref = flatListRefs.get(chatId);
+  if (!ref?.current) return;
+
+  // Get messages for this chat from the store
+  const state = useChatStore.getState();
+  const messages = state.messages.get(chatId) || [];
+
+  // Find the message index
+  const index = messages.findIndex((msg: ChatMessage) => msg.id === messageId);
+  if (index === -1) return;
+
+  // Scroll to the message
+  ref.current.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+};
 
 export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
   chats: [],
@@ -52,6 +89,8 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
   chatListenerActive: false,
   chatListenerUnsubscribe: null,
   typingUsers: new Map(),
+  highlightedMessageId: null,
+  highlightType: null,
 
   initializeTransport: () => {
     const transport = new FirebaseTransport();
@@ -399,5 +438,26 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
 
   setTypingUsers: (typingUsers: Map<string, string[]>) => {
     set({ typingUsers });
+  },
+
+  scrollToMessage: async (
+    chatId: string,
+    messageId: string,
+    type: 'calendar' | 'priority-high' | 'priority-urgent' = 'priority-high'
+  ) => {
+    // Set the highlighted message and type before scrolling
+    set({ highlightedMessageId: messageId, highlightType: type });
+
+    // Scroll to the message
+    await scrollToMessageById(chatId, messageId);
+
+    // Auto-clear highlight after 3 seconds
+    setTimeout(() => {
+      set({ highlightedMessageId: null, highlightType: null });
+    }, 3000);
+  },
+
+  clearHighlight: () => {
+    set({ highlightedMessageId: null, highlightType: null });
   },
 }));

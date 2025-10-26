@@ -31,14 +31,6 @@ export {
   searchChatMessages,
 } from "./ai/analysis";
 
-// Import AI trigger functions
-export {
-  onChatMessageCreatedDetectPriority,
-  onGroupMessageCreatedDetectPriority,
-  onChatMessageCreatedExtractCalendar,
-  onGroupMessageCreatedExtractCalendar,
-} from "./ai/triggers";
-
 // Import AI speech-to-text function
 export { transcribeAudio } from "./ai/speechToText";
 

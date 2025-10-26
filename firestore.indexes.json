@@ -18,6 +18,26 @@
         }
       ],
       "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "chatCalendar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "events.date",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "userCalendar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "events.date",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

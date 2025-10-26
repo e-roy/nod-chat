@@ -18,7 +18,7 @@ import { HStack } from '@ui/hstack';
 import { VStack } from '@ui/vstack';
 import { Spinner } from '@ui/spinner';
 
-import { useChatStore } from '@/store/chat';
+import { useChatStore, registerFlatListRef } from '@/store/chat';
 import { useGroupStore } from '@/store/groups';
 import { useAuthStore } from '@/store/auth';
 import { usePresenceStore } from '@/store/presence';
@@ -64,6 +64,14 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
   const [sending, setSending] = useState(false);
   const [userCache, setUserCache] = useState<Map<string, User>>(new Map());
   const flatListRef = useRef<FlatList>(null);
+
+  // Register the FlatList ref for scroll-to-message functionality
+  useEffect(() => {
+    registerFlatListRef(groupId, flatListRef);
+    return () => {
+      // Cleanup on unmount - optional
+    };
+  }, [groupId]);
 
   const group = groups.find(g => g.id === groupId);
   const chatMessages = messages.get(groupId) || [];
@@ -314,9 +322,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
           renderItem={renderMessage}
           style={{ flex: 1, backgroundColor: colors.bg.primary }}
           contentContainerStyle={{ paddingVertical: 12 }}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
+          // onContentSizeChange removed to prevent auto-scroll to bottom
           ListEmptyComponent={
             <VStack
               flex={1}

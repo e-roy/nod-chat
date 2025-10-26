@@ -21,6 +21,7 @@ import { Badge, BadgeText } from '@ui/badge';
 import { useThemeStore } from '@/store/theme';
 import { getColors } from '@/utils/colors';
 import { useAIStore } from '@/store/ai';
+import { useChatStore } from '@/store/chat';
 import { formatDistanceToNow } from '@/utils/time';
 
 interface PriorityActionSheetProps {
@@ -39,16 +40,42 @@ export const PriorityActionSheet: React.FC<PriorityActionSheetProps> = ({
   const { isDark } = useThemeStore();
   const colors = getColors(isDark);
   const { chatPriorities, loadPriorities } = useAIStore();
+  const { scrollToMessage } = useChatStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const priorities = chatPriorities.get(chatId);
   const sortedPriorities = priorities?.priorities
-    ? [...priorities.priorities].sort((a, b) => b.timestamp - a.timestamp)
+    ? [...priorities.priorities].sort((a, b) => {
+        // First sort by level: urgent comes before high
+        if (a.level !== b.level) {
+          return a.level === 'urgent' ? -1 : 1;
+        }
+        // Then sort by timestamp: most recent first
+        return b.timestamp - a.timestamp;
+      })
     : [];
 
-  const handleMessagePress = (messageId: string) => {
-    onMessagePress?.(messageId);
+  const handleMessagePress = async (
+    messageId: string,
+    level: 'high' | 'urgent'
+  ) => {
+    // Close the sheet first
     onClose();
+
+    // Wait a moment for the sheet to close
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Scroll to the message with the appropriate highlight type
+    const highlightType =
+      level === 'urgent' ? 'priority-urgent' : 'priority-high';
+    try {
+      await scrollToMessage(chatId, messageId, highlightType);
+    } catch (err) {
+      console.error('Error scrolling to message:', err);
+    }
+
+    // Call the callback if provided (for additional parent logic)
+    onMessagePress?.(messageId);
   };
 
   const handleRefresh = async () => {
@@ -100,7 +127,9 @@ export const PriorityActionSheet: React.FC<PriorityActionSheetProps> = ({
               {sortedPriorities.map((priority, index) => (
                 <TouchableOpacity
                   key={`${priority.messageId}-${index}`}
-                  onPress={() => handleMessagePress(priority.messageId)}
+                  onPress={() =>
+                    handleMessagePress(priority.messageId, priority.level)
+                  }
                 >
                   <Box
                     style={[

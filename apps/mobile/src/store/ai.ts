@@ -118,6 +118,20 @@ export const useAIStore = create<AIStore>((set, get) => ({
   loadCalendar: (chatId: string) => {
     const { calendarListeners } = get();
 
+    // Set loading state
+    set(state => {
+      const newLoading = new Map(state.loading);
+      newLoading.set(`calendar-${chatId}`, true);
+      return { loading: newLoading };
+    });
+
+    // Clear any existing errors
+    set(state => {
+      const newErrors = new Map(state.errors);
+      newErrors.delete(`calendar-${chatId}`);
+      return { errors: newErrors };
+    });
+
     // Unsubscribe existing listener if any
     const existingListener = calendarListeners.get(chatId);
     if (existingListener) {
@@ -133,12 +147,28 @@ export const useAIStore = create<AIStore>((set, get) => ({
           set(state => {
             const newCalendar = new Map(state.chatCalendar);
             newCalendar.set(chatId, data);
-            return { chatCalendar: newCalendar };
+            const newLoading = new Map(state.loading);
+            newLoading.set(`calendar-${chatId}`, false);
+            return { chatCalendar: newCalendar, loading: newLoading };
+          });
+        } else {
+          // Document doesn't exist yet - clear loading
+          set(state => {
+            const newLoading = new Map(state.loading);
+            newLoading.set(`calendar-${chatId}`, false);
+            return { loading: newLoading };
           });
         }
       },
       error => {
         console.error('Error loading calendar:', error);
+        set(state => {
+          const newErrors = new Map(state.errors);
+          newErrors.set(`calendar-${chatId}`, 'Failed to load calendar');
+          const newLoading = new Map(state.loading);
+          newLoading.set(`calendar-${chatId}`, false);
+          return { errors: newErrors, loading: newLoading };
+        });
       }
     );
 

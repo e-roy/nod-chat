@@ -439,7 +439,9 @@ Determine if this is a priority message and classify its level.`;
  */
 export async function extractCalendarEvents(
   messageText: string,
-  messageId: string
+  messageId: string,
+  participantUserIds: string[] = [],
+  chatId?: string
 ): Promise<
   Array<{
     id: string;
@@ -447,6 +449,8 @@ export async function extractCalendarEvents(
     date: number;
     time?: string;
     participants?: string[];
+    extractedFrom: string;
+    chatId?: string;
   }>
 > {
   const aiClient = getAI();
@@ -466,10 +470,16 @@ export async function extractCalendarEvents(
         participants: z
           .array(z.string())
           .optional()
-          .describe("Mentioned participants"),
+          .describe("Mentioned participants by name"),
       })
     ),
   });
+
+  // Build context about who's in the conversation
+  const participantContext =
+    participantUserIds.length > 0
+      ? `\n\nConversation participants (user IDs): ${participantUserIds.join(", ")}. Include all participants unless specifically mentioned otherwise.`
+      : "";
 
   const prompt = `You are extracting calendar events from a work message.
 Identify any:
@@ -479,8 +489,9 @@ Identify any:
 - Time-based commitments
 
 Message: "${messageText}"
+${participantContext}
 
-Extract events with dates and times. If no specific events are mentioned, return an empty array.`;
+Extract events with dates and times. Include all conversation participants in the event unless the message specifies otherwise. If no specific events are mentioned, return an empty array.`;
 
   try {
     const result = await aiClient.generate({
@@ -497,8 +508,13 @@ Extract events with dates and times. If no specific events are mentioned, return
         title: event.title,
         date: isNaN(date) ? Date.now() : date,
         time: event.time,
-        participants: event.participants,
+        // Default to all conversation participants if not explicitly mentioned
+        participants:
+          event.participants && event.participants.length > 0
+            ? event.participants
+            : participantUserIds,
         extractedFrom: messageId,
+        chatId,
       };
     });
   } catch (error) {

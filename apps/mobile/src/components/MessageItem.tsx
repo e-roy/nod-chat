@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Image,
   TouchableOpacity,
   Text as RNText,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { Clock, Check, CheckCheck, AlertCircle } from 'lucide-react-native';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@ui/avatar';
@@ -12,6 +13,7 @@ import { VStack } from '@ui/vstack';
 import { HStack } from '@ui/hstack';
 import { ChatMessage } from '@chatapp/shared';
 import { useThemeStore } from '@/store/theme';
+import { useChatStore } from '@/store/chat';
 import { getColors } from '@/utils/colors';
 
 const COLORS = {
@@ -107,7 +109,61 @@ const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const hasImage = !!message.imageUrl;
   const { isDark } = useThemeStore();
+  const { highlightedMessageId, highlightType } = useChatStore();
   const colors = getColors(isDark);
+  const isHighlighted = highlightedMessageId === message.id;
+
+  // Pulse animation for highlighted messages
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isHighlighted) {
+      // Start pulse animation when message becomes highlighted
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 0.3,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      // Stop animation when not highlighted
+      pulseAnim.setValue(1);
+    }
+
+    return () => {
+      pulseAnim.stopAnimation();
+    };
+  }, [isHighlighted, pulseAnim]);
+
+  // Determine base color for highlight
+  const getBaseColor = () => {
+    if (!isHighlighted || !highlightType) return null;
+
+    if (highlightType === 'calendar') {
+      return isDark
+        ? { r: 56, g: 189, b: 248, a: 0.3 }
+        : { r: 56, g: 189, b: 248, a: 0.2 };
+    } else if (highlightType === 'priority-high') {
+      return isDark
+        ? { r: 249, g: 115, b: 22, a: 0.3 }
+        : { r: 249, g: 115, b: 22, a: 0.2 };
+    } else if (highlightType === 'priority-urgent') {
+      return isDark
+        ? { r: 239, g: 68, b: 68, a: 0.3 }
+        : { r: 239, g: 68, b: 68, a: 0.2 };
+    }
+    return null;
+  };
+
+  const baseColor = getBaseColor();
 
   const getMessageStatusIcon = (status: string) => {
     const iconSize = 14;
@@ -164,144 +220,178 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   const bubbleBorderRadius = 16;
 
+  // Interpolate opacity for background pulse effect
+  const animatedOpacity = pulseAnim.interpolate({
+    inputRange: [0.3, 1],
+    outputRange: [0.3, 1],
+  });
+
   return (
-    <HStack style={styles.container} space="md" alignItems="start">
-      {/* Left side: Avatar with online indicator or spacer */}
-      <Box style={styles.avatarContainer}>
-        {showAvatar && (
-          <>
-            <Avatar size="sm">
-              {senderPhotoURL ? (
-                <AvatarImage source={{ uri: senderPhotoURL }} />
-              ) : (
-                <AvatarFallbackText>{senderName.charAt(0)}</AvatarFallbackText>
+    <Box
+      style={[
+        baseColor && {
+          borderRadius: 8,
+          marginHorizontal: 4,
+          marginVertical: 2,
+          overflow: 'hidden',
+        },
+      ]}
+    >
+      <Animated.View
+        style={[
+          baseColor && {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: `rgba(${baseColor.r}, ${baseColor.g}, ${baseColor.b}, ${baseColor.a})`,
+            opacity: animatedOpacity,
+          },
+        ]}
+      />
+      <HStack style={styles.container} space="md" alignItems="start">
+        {/* Left side: Avatar with online indicator or spacer */}
+        <Box style={styles.avatarContainer}>
+          {showAvatar && (
+            <>
+              <Avatar size="sm">
+                {senderPhotoURL ? (
+                  <AvatarImage source={{ uri: senderPhotoURL }} />
+                ) : (
+                  <AvatarFallbackText>
+                    {senderName.charAt(0)}
+                  </AvatarFallbackText>
+                )}
+              </Avatar>
+              {/* Online indicator */}
+              {isOnline && (
+                <Box
+                  style={[
+                    styles.onlineIndicator,
+                    { borderColor: colors.bg.primary },
+                  ]}
+                />
               )}
-            </Avatar>
-            {/* Online indicator */}
-            {isOnline && (
-              <Box
-                style={[
-                  styles.onlineIndicator,
-                  { borderColor: colors.bg.primary },
-                ]}
-              />
-            )}
-          </>
-        )}
-      </Box>
-
-      {/* Message content - takes up remaining width */}
-      <VStack flex={1} space="xs">
-        {/* Message bubble with name, time, and content inside */}
-        <Box
-          style={[
-            styles.messageBubble,
-            {
-              padding: hasImage ? 12 : 16,
-              backgroundColor: bubbleBackgroundColor,
-              borderRadius: bubbleBorderRadius,
-              borderWidth: 1,
-              borderColor: colors.border.muted,
-            },
-          ]}
-        >
-          {/* Sender name and timestamp inside bubble */}
-          <HStack space="sm" alignItems="center">
-            <RNText style={[styles.senderName, { color: textColor }]}>
-              {senderName}
-            </RNText>
-            <RNText style={[styles.timestamp, { color: timeColor }]}>
-              {formatMessageTime(message.createdAt)}
-            </RNText>
-          </HStack>
-
-          {/* Image content */}
-          {hasImage && (
-            <TouchableOpacity
-              onPress={() => onImagePress(message.imageUrl!)}
-              style={{ marginTop: 8 }}
-            >
-              <Image
-                source={{ uri: message.imageUrl! }}
-                style={[
-                  styles.image,
-                  {
-                    borderRadius: bubbleBorderRadius - 4,
-                  },
-                ]}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          )}
-
-          {/* Message text */}
-          {message.text && (
-            <RNText
-              style={[
-                styles.messageText,
-                { color: textColor },
-                hasImage && styles.messageTextWithImage,
-              ]}
-            >
-              {message.text}
-            </RNText>
+            </>
           )}
         </Box>
 
-        {/* Read indicators outside bubble at bottom right */}
-        {isOwnMessage && message.status !== 'failed' && (
-          <HStack space="xs" alignItems="center" justifyContent="end">
-            {isGroupChat ? (
-              // Group chat: Show avatars of users who have read the message
-              readByUsers.length > 0 ? (
-                <HStack space="xs" alignItems="center">
-                  {readByUsers.slice(0, 3).map(user => (
-                    <Avatar key={user.uid} size="xs">
-                      {user.photoURL ? (
-                        <AvatarImage source={{ uri: user.photoURL }} />
-                      ) : (
-                        <AvatarFallbackText>
-                          {user.displayName?.charAt(0) || '?'}
-                        </AvatarFallbackText>
-                      )}
-                    </Avatar>
-                  ))}
-                  {readByUsers.length > 3 && (
-                    <RNText
-                      style={[styles.readCount, { color: colors.text.muted }]}
-                    >
-                      +{readByUsers.length - 3}
-                    </RNText>
-                  )}
-                </HStack>
-              ) : (
-                // Show a placeholder or nothing if no one has read it yet
-                <RNText style={[styles.sentText, { color: colors.text.muted }]}>
-                  Sent
-                </RNText>
-              )
-            ) : (
-              // 1-on-1 chat: Show status icon
-              getMessageStatusIcon(message.status || 'sent')
-            )}
-          </HStack>
-        )}
-
-        {/* Failed message retry button outside bubble */}
-        {isOwnMessage && message.status === 'failed' && (
-          <TouchableOpacity onPress={() => onRetry(message.id)}>
-            <HStack space="xs" alignItems="center">
-              <Box>
-                <AlertCircle size={14} color={colors.error} />
-              </Box>
-              <RNText style={[styles.failedText, { color: colors.error }]}>
-                Failed to send. Tap to retry
+        {/* Message content - takes up remaining width */}
+        <VStack flex={1} space="xs">
+          {/* Message bubble with name, time, and content inside */}
+          <Box
+            style={[
+              styles.messageBubble,
+              {
+                padding: hasImage ? 12 : 16,
+                backgroundColor: bubbleBackgroundColor,
+                borderRadius: bubbleBorderRadius,
+                borderWidth: 1,
+                borderColor: colors.border.muted,
+              },
+            ]}
+          >
+            {/* Sender name and timestamp inside bubble */}
+            <HStack space="sm" alignItems="center">
+              <RNText style={[styles.senderName, { color: textColor }]}>
+                {senderName}
+              </RNText>
+              <RNText style={[styles.timestamp, { color: timeColor }]}>
+                {formatMessageTime(message.createdAt)}
               </RNText>
             </HStack>
-          </TouchableOpacity>
-        )}
-      </VStack>
-    </HStack>
+
+            {/* Image content */}
+            {hasImage && (
+              <TouchableOpacity
+                onPress={() => onImagePress(message.imageUrl!)}
+                style={{ marginTop: 8 }}
+              >
+                <Image
+                  source={{ uri: message.imageUrl! }}
+                  style={[
+                    styles.image,
+                    {
+                      borderRadius: bubbleBorderRadius - 4,
+                    },
+                  ]}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )}
+
+            {/* Message text */}
+            {message.text && (
+              <RNText
+                style={[
+                  styles.messageText,
+                  { color: textColor },
+                  hasImage && styles.messageTextWithImage,
+                ]}
+              >
+                {message.text}
+              </RNText>
+            )}
+          </Box>
+
+          {/* Read indicators outside bubble at bottom right */}
+          {isOwnMessage && message.status !== 'failed' && (
+            <HStack space="xs" alignItems="center" justifyContent="end">
+              {isGroupChat ? (
+                // Group chat: Show avatars of users who have read the message
+                readByUsers.length > 0 ? (
+                  <HStack space="xs" alignItems="center">
+                    {readByUsers.slice(0, 3).map(user => (
+                      <Avatar key={user.uid} size="xs">
+                        {user.photoURL ? (
+                          <AvatarImage source={{ uri: user.photoURL }} />
+                        ) : (
+                          <AvatarFallbackText>
+                            {user.displayName?.charAt(0) || '?'}
+                          </AvatarFallbackText>
+                        )}
+                      </Avatar>
+                    ))}
+                    {readByUsers.length > 3 && (
+                      <RNText
+                        style={[styles.readCount, { color: colors.text.muted }]}
+                      >
+                        +{readByUsers.length - 3}
+                      </RNText>
+                    )}
+                  </HStack>
+                ) : (
+                  // Show a placeholder or nothing if no one has read it yet
+                  <RNText
+                    style={[styles.sentText, { color: colors.text.muted }]}
+                  >
+                    Sent
+                  </RNText>
+                )
+              ) : (
+                // 1-on-1 chat: Show status icon
+                getMessageStatusIcon(message.status || 'sent')
+              )}
+            </HStack>
+          )}
+
+          {/* Failed message retry button outside bubble */}
+          {isOwnMessage && message.status === 'failed' && (
+            <TouchableOpacity onPress={() => onRetry(message.id)}>
+              <HStack space="xs" alignItems="center">
+                <Box>
+                  <AlertCircle size={14} color={colors.error} />
+                </Box>
+                <RNText style={[styles.failedText, { color: colors.error }]}>
+                  Failed to send. Tap to retry
+                </RNText>
+              </HStack>
+            </TouchableOpacity>
+          )}
+        </VStack>
+      </HStack>
+    </Box>
   );
 };
 

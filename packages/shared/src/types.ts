@@ -95,6 +95,7 @@ export interface CalendarEvent {
   time?: string;
   participants?: string[];
   extractedFrom: string; // messageId
+  chatId?: string;
 }
 
 export interface ChatCalendar {

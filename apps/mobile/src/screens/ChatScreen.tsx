@@ -17,7 +17,7 @@ import { RootStackParamList } from '@/types/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/firebaseApp';
 
-import { useChatStore } from '@/store/chat';
+import { useChatStore, registerFlatListRef } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
 import { usePresenceStore } from '@/store/presence';
 import { useThemeStore } from '@/store/theme';
@@ -56,6 +56,14 @@ const ChatScreen: React.FC = () => {
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
   const [userCache, setUserCache] = useState<Map<string, User>>(new Map());
   const flatListRef = useRef<FlatList>(null);
+
+  // Register the FlatList ref for scroll-to-message functionality
+  useEffect(() => {
+    registerFlatListRef(chatId, flatListRef);
+    return () => {
+      // Cleanup on unmount - optional
+    };
+  }, [chatId]);
 
   const chatMessages = messages.get(chatId) || [];
 
@@ -123,14 +131,14 @@ const ChatScreen: React.FC = () => {
     unsubscribeFromChat,
   ]);
 
+  // Only auto-scroll to bottom when the component first loads with messages
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
     if (chatMessages.length > 0) {
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        flatListRef.current?.scrollToEnd({ animated: false });
       }, 100);
     }
-  }, [chatMessages.length]);
+  }, []); // Only run on mount - empty dependency array
 
   const handleSendMessage = async () => {
     if (!messageText.trim()) return;
@@ -245,9 +253,7 @@ const ChatScreen: React.FC = () => {
           renderItem={renderMessage}
           style={[styles.container, { backgroundColor: colors.bg.primary }]}
           contentContainerStyle={{ paddingVertical: 12 }}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
+          // onContentSizeChange removed to prevent auto-scroll to bottom
         />
 
         {/* Message Input */}
