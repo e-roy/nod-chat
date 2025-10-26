@@ -72,6 +72,7 @@ export interface ChatAI {
   messageCount: number;
   messageCountAtSummary: number;
   messageCountAtActionItems: number;
+  messageCountAtDecisions: number;
 }
 
 export interface Priority {

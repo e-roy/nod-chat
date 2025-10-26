@@ -38,6 +38,8 @@ interface AIStore {
   checkActionItemsStaleness: (chatId: string) => Promise<boolean>;
   autoExtractActionItems: (chatId: string) => Promise<void>;
   extractDecisions: (chatId: string, subject?: string) => Promise<Decision[]>;
+  checkDecisionsStaleness: (chatId: string) => Promise<boolean>;
+  autoExtractDecisions: (chatId: string) => Promise<void>;
   searchMessages: (chatId: string, query: string) => Promise<SearchResult[]>;
   unsubscribeFromChat: (chatId: string) => void;
   clearError: (chatId: string) => void;
@@ -178,6 +180,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
           messageCount: 0,
           messageCountAtSummary: 0,
           messageCountAtActionItems: 0,
+          messageCountAtDecisions: 0,
         };
         newSummaries.set(chatId, {
           ...existing,
@@ -237,6 +240,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
           messageCount: 0,
           messageCountAtSummary: 0,
           messageCountAtActionItems: 0,
+          messageCountAtDecisions: 0,
         };
         newSummaries.set(chatId, {
           ...existing,
@@ -277,11 +281,12 @@ export const useAIStore = create<AIStore>((set, get) => ({
     try {
       const callable = httpsCallable<
         { chatId: string; subject?: string },
-        { decisions: Decision[] }
+        { decisions: Decision[]; messageCount: number }
       >(functions, 'extractChatDecisions');
 
       const result = await callable({ chatId, subject });
       const decisions = result.data.decisions;
+      const messageCount = result.data.messageCount;
 
       // Update local state
       set(state => {
@@ -295,11 +300,14 @@ export const useAIStore = create<AIStore>((set, get) => ({
           messageCount: 0,
           messageCountAtSummary: 0,
           messageCountAtActionItems: 0,
+          messageCountAtDecisions: 0,
         };
         newSummaries.set(chatId, {
           ...existing,
           decisions,
           lastUpdated: Date.now(),
+          messageCount,
+          messageCountAtDecisions: messageCount,
         });
         return { chatAISummaries: newSummaries };
       });
@@ -318,6 +326,45 @@ export const useAIStore = create<AIStore>((set, get) => ({
         const newLoading = new Map(state.loading);
         newLoading.delete(`decisions-${chatId}`);
         return { loading: newLoading };
+      });
+    }
+  },
+
+  // Check if decisions are stale (new messages since last extraction)
+  checkDecisionsStaleness: async (chatId: string): Promise<boolean> => {
+    const state = get();
+    const chatAI = state.chatAISummaries.get(chatId);
+
+    if (!chatAI || !chatAI.decisions || chatAI.decisions.length === 0) {
+      return true; // No decisions exist, consider stale
+    }
+
+    const currentMessageCount = chatAI.messageCount || 0;
+    const messageCountAtDecisions = chatAI.messageCountAtDecisions || 0;
+
+    // Check if new messages have been added
+    return currentMessageCount > messageCountAtDecisions;
+  },
+
+  // Auto-extract decisions if needed
+  autoExtractDecisions: async (chatId: string): Promise<void> => {
+    const state = get();
+    const chatAI = state.chatAISummaries.get(chatId);
+
+    // Always extract if no decisions exist
+    const hasDecisions = chatAI?.decisions && chatAI.decisions.length > 0;
+
+    if (!hasDecisions) {
+      await state.extractDecisions(chatId);
+      return;
+    }
+
+    // Check if decisions are stale
+    const isStale = await state.checkDecisionsStaleness(chatId);
+    if (isStale) {
+      // Refresh in background while showing old decisions
+      state.extractDecisions(chatId).catch(err => {
+        console.error('Background refresh of decisions failed:', err);
       });
     }
   },

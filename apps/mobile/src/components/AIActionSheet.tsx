@@ -6,13 +6,7 @@ import {
   ActivityIndicator,
   Text as RNText,
 } from 'react-native';
-import {
-  Search,
-  FileText,
-  CheckSquare,
-  GitBranch,
-  RefreshCw,
-} from 'lucide-react-native';
+import { Search, FileText, CheckSquare, GitBranch } from 'lucide-react-native';
 import {
   Actionsheet,
   ActionsheetBackdrop,
@@ -56,7 +50,7 @@ export const AIActionSheet: React.FC<AIActionSheetProps> = ({
     errors,
     autoGenerateSummary,
     autoExtractActionItems,
-    extractDecisions,
+    autoExtractDecisions,
     searchMessages,
     clearError,
   } = useAIStore();
@@ -97,20 +91,21 @@ export const AIActionSheet: React.FC<AIActionSheetProps> = ({
     }
   }, [activeTab, chatId, isOpen, autoExtractActionItems]);
 
+  // Auto-extract decisions when switching to decisions tab
+  useEffect(() => {
+    if (isOpen && activeTab === 'decisions') {
+      autoExtractDecisions(chatId).catch(err => {
+        console.error('Auto-extract decisions on tab switch failed:', err);
+      });
+    }
+  }, [activeTab, chatId, isOpen, autoExtractDecisions]);
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     try {
       await searchMessages(chatId, searchQuery);
     } catch (err) {
       console.error('Search failed:', err);
-    }
-  };
-
-  const handleRefreshDecisions = async () => {
-    try {
-      await extractDecisions(chatId);
-    } catch (err) {
-      console.error('Decisions extraction failed:', err);
     }
   };
 
@@ -610,67 +605,130 @@ export const AIActionSheet: React.FC<AIActionSheetProps> = ({
     );
   };
 
-  const renderDecisionsTab = () => (
-    <VStack space="md" style={styles.tabContent}>
-      <HStack space="sm" style={{ justifyContent: 'space-between' }}>
+  const renderDecisionsTab = () => {
+    const hasDecisions = chatAI?.decisions && chatAI.decisions.length > 0;
+    const isLoading = isLoadingDecisions;
+    const decisionsCount = chatAI?.decisions?.length || 0;
+    const messageCount = chatAI?.messageCount || 0;
+    const lastUpdated = chatAI?.lastUpdated || 0;
+
+    // Helper to format relative time
+    const formatRelativeTime = (timestamp: number) => {
+      const now = Date.now();
+      const diff = now - timestamp;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (minutes < 1) return 'just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      return `${days}d ago`;
+    };
+
+    return (
+      <VStack space="md" style={styles.tabContent}>
         <RNText style={[styles.sectionTitle, { color: colors.text.primary }]}>
           Decisions Made
         </RNText>
-        <TouchableOpacity
-          onPress={handleRefreshDecisions}
-          disabled={isLoadingDecisions}
-          accessibilityLabel="Refresh decisions"
-          accessibilityRole="button"
-        >
-          <RefreshCw size={20} color={colors.text.secondary} />
-        </TouchableOpacity>
-      </HStack>
 
-      {isLoadingDecisions ? (
-        <Box style={styles.centerContent}>
-          <ActivityIndicator color={colors.info} />
-        </Box>
-      ) : chatAI?.decisions && chatAI.decisions.length > 0 ? (
-        <ScrollView style={styles.resultsList}>
-          {chatAI.decisions.map(decision => (
-            <Box
-              key={decision.id}
+        {isLoading && !hasDecisions ? (
+          // Loading without existing decisions
+          <Box style={styles.centerContent}>
+            <ActivityIndicator color={colors.info} />
+            <RNText
               style={[
-                styles.decisionItem,
-                {
-                  backgroundColor: colors.bg.secondary,
-                  borderColor: colors.border.default,
-                },
+                styles.emptyText,
+                { color: colors.text.muted, marginTop: 12 },
               ]}
             >
-              <RNText style={[styles.decisionSubject, { color: colors.info }]}>
-                {decision.subject}
-              </RNText>
-              <RNText
-                style={[styles.decisionText, { color: colors.text.primary }]}
+              Extracting decisions...
+            </RNText>
+          </Box>
+        ) : hasDecisions ? (
+          // Has decisions (may be loading in background)
+          <>
+            {/* Loading overlay banner */}
+            {isLoading && (
+              <Box
+                style={[
+                  styles.loadingBanner,
+                  {
+                    backgroundColor: colors.info + '20',
+                    borderColor: colors.info + '40',
+                  },
+                ]}
               >
-                {decision.decision}
-              </RNText>
+                <ActivityIndicator size="small" color={colors.info} />
+                <RNText
+                  style={[styles.loadingBannerText, { color: colors.info }]}
+                >
+                  Updating decisions...
+                </RNText>
+              </Box>
+            )}
+
+            {/* Metadata */}
+            {decisionsCount > 0 && messageCount > 0 && (
               <RNText
-                style={[styles.decisionTime, { color: colors.text.muted }]}
+                style={[styles.metadataText, { color: colors.text.muted }]}
               >
-                {new Date(decision.timestamp).toLocaleString()}
+                {decisionsCount} decisions from {messageCount} messages •
+                Updated {formatRelativeTime(lastUpdated)}
               </RNText>
-            </Box>
-          ))}
-        </ScrollView>
-      ) : (
-        <Box>
-          <RNText style={[styles.emptyText, { color: colors.text.muted }]}>
-            No decisions found. Extract them to get started.
-          </RNText>
-          <Button onPress={handleRefreshDecisions} style={{ marginTop: 12 }}>
-            <ButtonText>Extract Decisions</ButtonText>
-          </Button>
-        </Box>
-      )}
-    </VStack>
-  );
+            )}
+
+            {/* Decisions list - sorted by most recent first */}
+            <ScrollView style={styles.resultsList}>
+              {chatAI.decisions
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .map(decision => (
+                  <Box
+                    key={decision.id}
+                    style={[
+                      styles.decisionItem,
+                      {
+                        backgroundColor: colors.bg.secondary,
+                        borderColor: colors.border.default,
+                      },
+                    ]}
+                  >
+                    <RNText
+                      style={[styles.decisionSubject, { color: colors.info }]}
+                    >
+                      {decision.subject}
+                    </RNText>
+                    <RNText
+                      style={[
+                        styles.decisionText,
+                        { color: colors.text.primary },
+                      ]}
+                    >
+                      {decision.decision}
+                    </RNText>
+                    <RNText
+                      style={[
+                        styles.decisionTime,
+                        { color: colors.text.muted },
+                      ]}
+                    >
+                      {new Date(decision.timestamp).toLocaleString()}
+                    </RNText>
+                  </Box>
+                ))}
+            </ScrollView>
+          </>
+        ) : (
+          // No decisions
+          <Box>
+            <RNText style={[styles.emptyText, { color: colors.text.muted }]}>
+              No decisions found.
+            </RNText>
+          </Box>
+        )}
+      </VStack>
+    );
+  };
 
   const renderContent = () => {
     switch (activeTab) {

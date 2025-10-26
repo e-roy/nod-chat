@@ -228,17 +228,17 @@ export const extractChatDecisions = onCall<ExtractDecisionsRequest>(
       const isGroup = chatId.startsWith("group_");
       const parentCollection = isGroup ? "groups" : "chats";
 
-      // Fetch last 100 messages from subcollection
+      // Fetch last 300 messages from subcollection
       const messagesSnapshot = await db
         .collection(parentCollection)
         .doc(chatId)
         .collection("messages")
         .orderBy("createdAt", "desc")
-        .limit(100)
+        .limit(300)
         .get();
 
       if (messagesSnapshot.empty) {
-        return { decisions: [] };
+        return { decisions: [], messageCount: 0 };
       }
 
       const messages = messagesSnapshot.docs
@@ -252,6 +252,8 @@ export const extractChatDecisions = onCall<ExtractDecisionsRequest>(
 
       const decisions = await extractDecisions(messages, subject);
 
+      const messageCount = messages.length;
+
       // Update cache
       const aiDocRef = db.collection("chatAI").doc(chatId);
       await aiDocRef.set(
@@ -259,12 +261,13 @@ export const extractChatDecisions = onCall<ExtractDecisionsRequest>(
           chatId,
           decisions,
           lastUpdated: Date.now(),
-          messageCount: messages.length,
+          messageCount,
+          messageCountAtDecisions: messageCount,
         },
         { merge: true }
       );
 
-      return { decisions };
+      return { decisions, messageCount };
     } catch (error) {
       console.error("Error extracting decisions:", error);
       throw new HttpsError("internal", "Failed to extract decisions");
