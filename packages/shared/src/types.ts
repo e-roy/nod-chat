@@ -53,6 +53,7 @@ export interface ActionItem {
   text: string;
   assignee?: string;
   status: "pending" | "done";
+  dueDate?: number;
 }
 
 export interface Decision {
@@ -70,6 +71,7 @@ export interface ChatAI {
   lastUpdated: number;
   messageCount: number;
   messageCountAtSummary: number;
+  messageCountAtActionItems: number;
 }
 
 export interface Priority {

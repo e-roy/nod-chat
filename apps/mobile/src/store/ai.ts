@@ -35,6 +35,8 @@ interface AIStore {
     chatId: string,
     forceRefresh?: boolean
   ) => Promise<ActionItem[]>;
+  checkActionItemsStaleness: (chatId: string) => Promise<boolean>;
+  autoExtractActionItems: (chatId: string) => Promise<void>;
   extractDecisions: (chatId: string, subject?: string) => Promise<Decision[]>;
   searchMessages: (chatId: string, query: string) => Promise<SearchResult[]>;
   unsubscribeFromChat: (chatId: string) => void;
@@ -175,6 +177,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
           lastUpdated: 0,
           messageCount: 0,
           messageCountAtSummary: 0,
+          messageCountAtActionItems: 0,
         };
         newSummaries.set(chatId, {
           ...existing,
@@ -215,11 +218,12 @@ export const useAIStore = create<AIStore>((set, get) => ({
     try {
       const callable = httpsCallable<
         { chatId: string; forceRefresh?: boolean },
-        { actionItems: ActionItem[] }
+        { actionItems: ActionItem[]; messageCount: number }
       >(functions, 'extractChatActionItems');
 
       const result = await callable({ chatId, forceRefresh });
       const actionItems = result.data.actionItems;
+      const messageCount = result.data.messageCount;
 
       // Update local state
       set(state => {
@@ -232,11 +236,14 @@ export const useAIStore = create<AIStore>((set, get) => ({
           lastUpdated: 0,
           messageCount: 0,
           messageCountAtSummary: 0,
+          messageCountAtActionItems: 0,
         };
         newSummaries.set(chatId, {
           ...existing,
           actionItems,
           lastUpdated: Date.now(),
+          messageCount,
+          messageCountAtActionItems: messageCount,
         });
         return { chatAISummaries: newSummaries };
       });
@@ -287,6 +294,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
           lastUpdated: 0,
           messageCount: 0,
           messageCountAtSummary: 0,
+          messageCountAtActionItems: 0,
         };
         newSummaries.set(chatId, {
           ...existing,
@@ -453,6 +461,81 @@ export const useAIStore = create<AIStore>((set, get) => ({
       }
     } catch (error) {
       console.error('Error in autoGenerateSummary:', error);
+      // Silently fail - don't throw, just log
+    }
+  },
+
+  // Check if action items are stale (new messages since last extraction)
+  checkActionItemsStaleness: async (chatId: string): Promise<boolean> => {
+    try {
+      const { chatAISummaries } = get();
+      const existing = chatAISummaries.get(chatId);
+
+      if (
+        !existing ||
+        !existing.actionItems ||
+        existing.actionItems.length === 0
+      ) {
+        return true; // No action items exist
+      }
+
+      // Get current message count
+      const callable = httpsCallable<
+        { chatId: string; forceRefresh?: boolean },
+        { actionItems: ActionItem[]; messageCount: number }
+      >(functions, 'extractChatActionItems');
+
+      // Just check message count by attempting to get cached data
+      const result = await callable({ chatId, forceRefresh: false });
+      const currentMessageCount = result.data.messageCount;
+
+      // Check if there are new messages since action items were extracted
+      const messageCountAtActionItems =
+        existing.messageCountAtActionItems || existing.messageCount || 0;
+      const stale = currentMessageCount > messageCountAtActionItems;
+
+      if (stale) {
+        console.log(
+          `Action items stale for ${chatId}: ${currentMessageCount} messages now vs ${messageCountAtActionItems} at extraction`
+        );
+      }
+
+      return stale;
+    } catch (error) {
+      console.error('Error checking action items staleness:', error);
+      return false; // Assume not stale on error
+    }
+  },
+
+  // Auto-extract action items if needed (checks staleness first)
+  autoExtractActionItems: async (chatId: string): Promise<void> => {
+    try {
+      const { checkActionItemsStaleness, extractActionItems } = get();
+
+      // Check if action items exist and are not stale
+      const { chatAISummaries } = get();
+      const existing = chatAISummaries.get(chatId);
+
+      if (
+        !existing ||
+        !existing.actionItems ||
+        existing.actionItems.length === 0
+      ) {
+        // No action items exist, extract them
+        await extractActionItems(chatId);
+        return;
+      }
+
+      // Check if action items are stale
+      const isStale = await checkActionItemsStaleness(chatId);
+
+      if (isStale) {
+        // Extract new action items in background
+        console.log(`Auto-extracting stale action items for ${chatId}`);
+        await extractActionItems(chatId, true);
+      }
+    } catch (error) {
+      console.error('Error in autoExtractActionItems:', error);
       // Silently fail - don't throw, just log
     }
   },

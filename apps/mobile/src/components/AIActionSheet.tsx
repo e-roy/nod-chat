@@ -28,6 +28,7 @@ import { Input, InputField } from '@ui/input';
 import { useThemeStore } from '@/store/theme';
 import { getColors } from '@/utils/colors';
 import { useAIStore } from '@/store/ai';
+import { useAuthStore } from '@/store/auth';
 
 interface AIActionSheetProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export const AIActionSheet: React.FC<AIActionSheetProps> = ({
   chatId,
 }) => {
   const { isDark } = useThemeStore();
+  const { user } = useAuthStore();
   const colors = getColors(isDark);
   const [activeTab, setActiveTab] = useState<Tab>('search');
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,7 +55,7 @@ export const AIActionSheet: React.FC<AIActionSheetProps> = ({
     loading,
     errors,
     autoGenerateSummary,
-    extractActionItems,
+    autoExtractActionItems,
     extractDecisions,
     searchMessages,
     clearError,
@@ -86,20 +88,21 @@ export const AIActionSheet: React.FC<AIActionSheetProps> = ({
     }
   }, [activeTab, chatId, isOpen, autoGenerateSummary]);
 
+  // Auto-extract action items when switching to actions tab
+  useEffect(() => {
+    if (isOpen && activeTab === 'actions') {
+      autoExtractActionItems(chatId).catch(err => {
+        console.error('Auto-extract action items on tab switch failed:', err);
+      });
+    }
+  }, [activeTab, chatId, isOpen, autoExtractActionItems]);
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     try {
       await searchMessages(chatId, searchQuery);
     } catch (err) {
       console.error('Search failed:', err);
-    }
-  };
-
-  const handleRefreshActions = async () => {
-    try {
-      await extractActionItems(chatId, true);
-    } catch (err) {
-      console.error('Action items extraction failed:', err);
     }
   };
 
@@ -340,79 +343,272 @@ export const AIActionSheet: React.FC<AIActionSheetProps> = ({
     );
   };
 
-  const renderActionsTab = () => (
-    <VStack space="md" style={styles.tabContent}>
-      <HStack space="sm" style={{ justifyContent: 'space-between' }}>
+  const renderActionsTab = () => {
+    const hasActionItems = chatAI?.actionItems && chatAI.actionItems.length > 0;
+    const isLoading = isLoadingActions;
+    const actionItemsCount = chatAI?.actionItems?.length || 0;
+    const messageCount = chatAI?.messageCount || 0;
+    const lastUpdated = chatAI?.lastUpdated || 0;
+
+    // Helper to format relative time
+    const formatRelativeTime = (timestamp: number) => {
+      const now = Date.now();
+      const diff = now - timestamp;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (minutes < 1) return 'just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      return `${days}d ago`;
+    };
+
+    // Helper to format due date with absolute date
+    const formatDueDate = (timestamp: number, status?: string) => {
+      // For completed items, just show the date without urgency indicators
+      if (status === 'done') {
+        const dueDate = new Date(timestamp);
+        return `Completed • ${dueDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        })}`;
+      }
+
+      const now = Date.now();
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
+      const dueDate = new Date(timestamp);
+      dueDate.setHours(0, 0, 0, 0);
+
+      const diff = dueDate.getTime() - today.getTime();
+      const days = Math.ceil(diff / 86400000);
+
+      const dateStr = dueDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      });
+
+      if (days < 0) return `Overdue (${dateStr})`;
+      if (days === 0) return `Due today (${dateStr})`;
+      if (days === 1) return `Due tomorrow (${dateStr})`;
+      if (days <= 7) return `Due in ${days} days (${dateStr})`;
+      return dateStr;
+    };
+
+    // Helper to get urgency color
+    const getUrgencyColor = (dueDate?: number, status?: string) => {
+      // Always show green for completed items, regardless of due date
+      if (status === 'done') return colors.success;
+
+      if (!dueDate) return colors.text.secondary;
+
+      const now = Date.now();
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
+      const dueDateObj = new Date(dueDate);
+      dueDateObj.setHours(0, 0, 0, 0);
+
+      const diff = dueDateObj.getTime() - today.getTime();
+      const days = Math.ceil(diff / 86400000);
+
+      if (days < 0) return '#EF4444'; // Red for overdue
+      if (days === 0) return '#F59E0B'; // Orange for today
+      if (days <= 3) return '#F97316'; // Orange for soon
+      if (days <= 7) return '#EAB308'; // Yellow for this week
+      return colors.text.secondary;
+    };
+
+    // Helper to check if item is assigned to current user
+    const isAssignedToMe = (assignee?: string) => {
+      if (!assignee || !user) return false;
+      const assigneeLower = assignee.toLowerCase();
+      const userDisplayName = user.displayName?.toLowerCase();
+      const userEmail = user.email?.toLowerCase();
+      return (
+        assigneeLower === userDisplayName ||
+        assigneeLower === userEmail ||
+        assigneeLower === user.uid.toLowerCase()
+      );
+    };
+
+    // Sort and filter action items
+    const sortedActionItems = chatAI?.actionItems
+      ? [...chatAI.actionItems].sort((a, b) => {
+          // First: incomplete items before done items
+          if (a.status !== b.status) {
+            return a.status === 'done' ? 1 : -1;
+          }
+
+          // Second: items with due dates before items without
+          if (a.dueDate && !b.dueDate) return -1;
+          if (!a.dueDate && b.dueDate) return 1;
+
+          // Third: sort by due date (earliest first)
+          if (a.dueDate && b.dueDate) {
+            return a.dueDate - b.dueDate;
+          }
+
+          // Fourth: prioritize items assigned to current user
+          const aAssignedToMe = isAssignedToMe(a.assignee);
+          const bAssignedToMe = isAssignedToMe(b.assignee);
+          if (aAssignedToMe && !bAssignedToMe) return -1;
+          if (!aAssignedToMe && bAssignedToMe) return 1;
+
+          return 0;
+        })
+      : [];
+
+    return (
+      <VStack space="md" style={styles.tabContent}>
         <RNText style={[styles.sectionTitle, { color: colors.text.primary }]}>
           Action Items
         </RNText>
-        <TouchableOpacity
-          onPress={handleRefreshActions}
-          disabled={isLoadingActions}
-          accessibilityLabel="Refresh action items"
-          accessibilityRole="button"
-        >
-          <RefreshCw size={20} color={colors.text.secondary} />
-        </TouchableOpacity>
-      </HStack>
 
-      {isLoadingActions ? (
-        <Box style={styles.centerContent}>
-          <ActivityIndicator color={colors.info} />
-        </Box>
-      ) : chatAI?.actionItems && chatAI.actionItems.length > 0 ? (
-        <ScrollView style={styles.resultsList}>
-          {chatAI.actionItems.map(item => (
-            <Box
-              key={item.id}
+        {isLoading && !hasActionItems ? (
+          // Loading without existing action items
+          <Box style={styles.centerContent}>
+            <ActivityIndicator color={colors.info} />
+            <RNText
               style={[
-                styles.actionItem,
-                {
-                  backgroundColor: colors.bg.secondary,
-                  borderColor: colors.border.default,
-                },
+                styles.emptyText,
+                { color: colors.text.muted, marginTop: 12 },
               ]}
             >
-              <RNText
-                style={[styles.actionText, { color: colors.text.primary }]}
-              >
-                {item.text}
-              </RNText>
-              {item.assignee && (
-                <RNText
-                  style={[styles.assigneeText, { color: colors.text.muted }]}
-                >
-                  Assigned to: {item.assignee}
-                </RNText>
-              )}
-              <RNText
+              Extracting action items...
+            </RNText>
+          </Box>
+        ) : hasActionItems ? (
+          // Has action items (may be loading in background)
+          <>
+            {/* Loading overlay banner */}
+            {isLoading && (
+              <Box
                 style={[
-                  styles.statusText,
+                  styles.loadingBanner,
                   {
-                    color:
-                      item.status === 'done'
-                        ? colors.success
-                        : colors.text.secondary,
+                    backgroundColor: colors.info + '20',
+                    borderColor: colors.info + '40',
                   },
                 ]}
               >
-                {item.status}
+                <ActivityIndicator size="small" color={colors.info} />
+                <RNText
+                  style={[styles.loadingBannerText, { color: colors.info }]}
+                >
+                  Updating action items...
+                </RNText>
+              </Box>
+            )}
+
+            {/* Metadata */}
+            {actionItemsCount > 0 && messageCount > 0 && (
+              <RNText
+                style={[styles.metadataText, { color: colors.text.muted }]}
+              >
+                {actionItemsCount} action items from {messageCount} messages •
+                Updated {formatRelativeTime(lastUpdated)}
               </RNText>
-            </Box>
-          ))}
-        </ScrollView>
-      ) : (
-        <Box>
-          <RNText style={[styles.emptyText, { color: colors.text.muted }]}>
-            No action items found. Extract them to get started.
-          </RNText>
-          <Button onPress={handleRefreshActions} style={{ marginTop: 12 }}>
-            <ButtonText>Extract Action Items</ButtonText>
-          </Button>
-        </Box>
-      )}
-    </VStack>
-  );
+            )}
+
+            {/* Action items list */}
+            <ScrollView style={styles.resultsList}>
+              {sortedActionItems.map(item => {
+                const assignedToMe = isAssignedToMe(item.assignee);
+                const dueDateColor = getUrgencyColor(item.dueDate, item.status);
+                const isAssigned = assignedToMe;
+
+                return (
+                  <Box
+                    key={item.id}
+                    style={[
+                      styles.actionItem,
+                      {
+                        backgroundColor: colors.bg.secondary,
+                        borderColor: isAssigned
+                          ? colors.info
+                          : colors.border.default,
+                        borderWidth: isAssigned ? 2 : 1,
+                      },
+                    ]}
+                  >
+                    <HStack
+                      space="sm"
+                      alignItems="start"
+                      justifyContent="between"
+                    >
+                      <VStack flex={1} space="xs">
+                        <RNText
+                          style={[
+                            styles.actionText,
+                            { color: colors.text.primary },
+                          ]}
+                        >
+                          {item.text}
+                        </RNText>
+                        <HStack space="md" alignItems="center">
+                          {item.assignee && (
+                            <RNText
+                              style={[
+                                styles.assigneeText,
+                                { color: colors.text.muted },
+                              ]}
+                            >
+                              Assigned to:{' '}
+                              <RNText
+                                style={{
+                                  color: assignedToMe
+                                    ? colors.info
+                                    : colors.text.muted,
+                                  fontWeight: assignedToMe ? '600' : '400',
+                                }}
+                              >
+                                {item.assignee}
+                              </RNText>
+                            </RNText>
+                          )}
+                          {item.dueDate && (
+                            <RNText
+                              style={[
+                                styles.dueDateText,
+                                { color: dueDateColor, fontWeight: '600' },
+                              ]}
+                            >
+                              {formatDueDate(item.dueDate, item.status)}
+                            </RNText>
+                          )}
+                        </HStack>
+                      </VStack>
+                      <RNText
+                        style={[
+                          styles.statusText,
+                          {
+                            color:
+                              item.status === 'done'
+                                ? colors.success
+                                : colors.text.secondary,
+                          },
+                        ]}
+                      >
+                        {item.status}
+                      </RNText>
+                    </HStack>
+                  </Box>
+                );
+              })}
+            </ScrollView>
+          </>
+        ) : (
+          // No action items
+          <Box>
+            <RNText style={[styles.emptyText, { color: colors.text.muted }]}>
+              No action items found.
+            </RNText>
+          </Box>
+        )}
+      </VStack>
+    );
+  };
 
   const renderDecisionsTab = () => (
     <VStack space="md" style={styles.tabContent}>
@@ -607,6 +803,10 @@ const styles = StyleSheet.create({
   assigneeText: {
     fontSize: 12,
     marginBottom: 2,
+  },
+  dueDateText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   statusText: {
     fontSize: 12,

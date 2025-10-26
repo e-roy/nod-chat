@@ -146,13 +146,13 @@ export const extractChatActionItems = onCall<ExtractActionItemsRequest>(
       const isGroup = chatId.startsWith("group_");
       const parentCollection = isGroup ? "groups" : "chats";
 
-      // Fetch last 100 messages from subcollection
+      // Fetch last 300 messages from subcollection
       const messagesSnapshot = await db
         .collection(parentCollection)
         .doc(chatId)
         .collection("messages")
         .orderBy("createdAt", "desc")
-        .limit(100)
+        .limit(300)
         .get();
 
       if (messagesSnapshot.empty) {
@@ -182,18 +182,21 @@ export const extractChatActionItems = onCall<ExtractActionItemsRequest>(
 
       const actionItems = await extractActionItems(messages, userMap);
 
+      const messageCount = messages.length;
+
       // Update cache
       await aiDocRef.set(
         {
           chatId,
           actionItems,
           lastUpdated: Date.now(),
-          messageCount: messages.length,
+          messageCount,
+          messageCountAtActionItems: messageCount,
         },
         { merge: true }
       );
 
-      return { actionItems };
+      return { actionItems, messageCount };
     } catch (error) {
       console.error("Error extracting action items:", error);
       throw new HttpsError("internal", "Failed to extract action items");
