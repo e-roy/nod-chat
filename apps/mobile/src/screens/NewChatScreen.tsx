@@ -6,8 +6,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/types/navigation';
 
 import { Button, ButtonText } from '@ui/button';
-import { Input, InputField } from '@ui/input';
 import { Box } from '@ui/box';
+import StyledInput from '@ui/StyledInput';
 import { VStack } from '@ui/vstack';
 
 import { useChatStore } from '@/store/chat';
@@ -129,15 +129,13 @@ const NewChatScreen: React.FC = () => {
           </VStack>
 
           <VStack space="md">
-            <Input>
-              <InputField
-                placeholder="Enter user ID or email"
-                value={participantEmail}
-                onChangeText={setParticipantEmail}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </Input>
+            <StyledInput
+              placeholder="Enter user ID or email"
+              value={participantEmail}
+              onChangeText={setParticipantEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
 
             {error && (
               <RNText style={[styles.error, { color: colors.error }]}>

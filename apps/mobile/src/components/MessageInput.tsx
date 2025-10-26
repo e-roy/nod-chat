@@ -21,17 +21,25 @@ import {
   ActionsheetItem,
   ActionsheetItemText,
 } from '@ui/actionsheet';
-import { Input, InputField } from '@ui/input';
 import { HStack } from '@ui/hstack';
 import { Box } from '@ui/box';
+import StyledInput from '@ui/StyledInput';
 import {
   takePhoto,
   pickImage,
   uploadImage,
   UploadProgress,
 } from '@/messaging/mediaUpload';
+import {
+  startRecording,
+  stopRecording,
+  cleanupRecording,
+  getAudioBlob,
+} from '@/messaging/audioRecording';
 import { useThemeStore } from '@/store/theme';
 import { getColors } from '@/utils/colors';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/firebase/firebaseApp';
 
 interface MessageInputProps {
   chatId: string;
@@ -54,10 +62,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
     null
   );
-  const [isFocused, setIsFocused] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessingSpeech, setIsProcessingSpeech] = useState(false);
   const { isDark } = useThemeStore();
   const colors = getColors(isDark);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (isRecording) {
+        cleanupRecording();
+      }
+    };
+  }, [isRecording]);
 
   // Track keyboard visibility
   useEffect(() => {
@@ -75,31 +93,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
       keyboardDidHideListener?.remove();
     };
   }, []);
-
-  // Calculate input height based on content
-  const calculateInputHeight = () => {
-    if (!messageText) return 48; // Default height
-
-    // Count actual line breaks
-    const explicitLines = messageText.split('\n').length;
-
-    // Estimate character wrapping (assuming ~30 characters per line on mobile)
-    const estimatedWrappedLines = Math.ceil(messageText.length / 30);
-
-    // Use the maximum of explicit lines and wrapped lines
-    const totalLines = Math.max(explicitLines, estimatedWrappedLines);
-
-    const baseHeight = 48;
-    const lineHeight = 22; // Approximate line height
-
-    const calculatedHeight = baseHeight + (totalLines - 1) * lineHeight;
-    const minHeight = 48;
-    const maxHeight = 120;
-
-    return Math.min(Math.max(calculatedHeight, minHeight), maxHeight);
-  };
-
-  const inputHeight = calculateInputHeight();
 
   const handleImageUpload = async (imageUri: string) => {
     try {
@@ -134,6 +127,70 @@ const MessageInput: React.FC<MessageInputProps> = ({
     if (uri) {
       await handleImageUpload(uri);
     }
+  };
+
+  const handleSpeechToTextResult = async (action: string) => {
+    try {
+      if (action === 'recording') {
+        // Start recording
+        await startRecording();
+        setIsRecording(true);
+      } else if (isRecording) {
+        // Stop recording and process - don't change state yet
+        setIsProcessingSpeech(true);
+
+        const audioUri = await stopRecording();
+        setIsRecording(false);
+
+        if (!audioUri) {
+          setIsProcessingSpeech(false);
+          return;
+        }
+
+        // Convert audio to base64
+        const blob = await getAudioBlob(audioUri);
+        const base64Audio = await blobToBase64(blob);
+
+        // Call Firebase Function to transcribe with base64 data
+        const transcribeAudioFunction = httpsCallable(
+          functions,
+          'transcribeAudio'
+        );
+        const result = await transcribeAudioFunction({
+          audioData: base64Audio,
+        });
+
+        const transcribedText = (result.data as { text: string }).text;
+        if (transcribedText) {
+          onMessageTextChange(transcribedText);
+        }
+
+        setIsProcessingSpeech(false);
+      }
+    } catch (error) {
+      console.error('Error in speech-to-text:', error);
+      setIsRecording(false);
+      setIsProcessingSpeech(false);
+      // Clean up any dangling recording
+      cleanupRecording();
+    }
+  };
+
+  // Helper function to convert blob to base64
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          const base64 = reader.result.split(',')[1]; // Remove data:audio/m4a;base64, prefix
+          resolve(base64);
+        } else {
+          reject(new Error('Failed to convert blob to base64'));
+        }
+      };
+      reader.readAsDataURL(blob);
+    });
   };
 
   return (
@@ -182,46 +239,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
           </HStack>
 
           {/* Message input */}
-          <Input
-            style={{
-              flex: 1,
-              backgroundColor: colors.bg.secondary,
-              borderRadius: 24,
-              borderWidth: isFocused ? 2 : 1,
-              borderColor: isFocused ? colors.info : colors.border.muted,
-              height: inputHeight,
-              maxHeight: 120,
-              shadowColor: isFocused ? colors.info : colors.bg.primary,
-              shadowOffset: {
-                width: 0,
-                height: isFocused ? 2 : 0,
-              },
-              shadowOpacity: isFocused ? 0.1 : 0,
-              shadowRadius: isFocused ? 4 : 0,
-              elevation: isFocused ? 2 : 0,
-            }}
-          >
-            <InputField
-              placeholder=""
-              placeholderTextColor={colors.text.muted}
-              value={messageText}
-              onChangeText={onMessageTextChange}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              multiline
-              maxLength={1000}
-              editable={!disabled}
-              style={{
-                fontSize: 16,
-                color: colors.text.primary,
-                paddingTop: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                textAlignVertical: 'top',
-                height: '100%',
-              }}
-            />
-          </Input>
+          <StyledInput
+            value={messageText}
+            onChangeText={onMessageTextChange}
+            placeholder=""
+            multiline
+            enableDynamicHeight
+            minHeight={48}
+            maxHeight={120}
+            editable={!disabled}
+            style={{ flex: 1 }}
+            enableSpeechToText
+            onSpeechToTextResult={handleSpeechToTextResult}
+            isProcessingSpeech={isProcessingSpeech}
+          />
 
           {/* Send button */}
           <TouchableOpacity
@@ -280,7 +311,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
               { color: colors.text.primary, marginBottom: 8 },
             ]}
           >
-            Uploading image... {Math.round(uploadProgress.progress)}%
+            {isProcessingSpeech
+              ? 'Transcribing audio...'
+              : `Uploading image... ${Math.round(uploadProgress.progress)}%`}
           </RNText>
           <Box
             style={{

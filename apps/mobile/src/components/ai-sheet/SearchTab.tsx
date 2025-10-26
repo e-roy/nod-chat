@@ -4,7 +4,7 @@ import { Box } from '@ui/box';
 import { VStack } from '@ui/vstack';
 import { HStack } from '@ui/hstack';
 import { Button, ButtonText } from '@ui/button';
-import { Input, InputField } from '@ui/input';
+import StyledInput from '@ui/StyledInput';
 import { getColors } from '@/utils/colors';
 import { SearchResult } from '@chatapp/shared';
 
@@ -30,15 +30,13 @@ export const SearchTab: React.FC<SearchTabProps> = ({
   return (
     <VStack space="md" style={{ flex: 1 }}>
       <HStack space="sm">
-        <Input style={{ flex: 1 }}>
-          <InputField
-            placeholder="Search messages..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearch}
-            placeholderTextColor={colors.text.muted}
-          />
-        </Input>
+        <StyledInput
+          placeholder="Search messages..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onSubmitEditing={handleSearch}
+          style={{ flex: 1 }}
+        />
         <Button onPress={handleSearch} disabled={isLoading}>
           <ButtonText>Search</ButtonText>
         </Button>

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, Text as RNText, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ButtonText } from '@ui/button';
-import { Input, InputField } from '@ui/input';
 import { VStack } from '@ui/vstack';
 import { HStack } from '@ui/hstack';
+import StyledInput from '@ui/StyledInput';
 import { Box } from '@ui/box';
 import { Avatar, AvatarImage, AvatarFallbackText } from '@ui/avatar';
 import { Camera } from 'lucide-react-native';
@@ -131,30 +131,24 @@ const ProfileEditScreen: React.FC = () => {
               <RNText style={[styles.label, { color: colors.text.primary }]}>
                 Display Name
               </RNText>
-              <Input>
-                <InputField
-                  placeholder="Enter your name"
-                  value={displayName}
-                  onChangeText={setDisplayName}
-                  style={{ color: colors.text.primary }}
-                />
-              </Input>
+              <StyledInput
+                placeholder="Enter your name"
+                value={displayName}
+                onChangeText={setDisplayName}
+              />
             </VStack>
 
             <VStack space="sm">
               <RNText style={[styles.label, { color: colors.text.primary }]}>
                 Status Message
               </RNText>
-              <Input>
-                <InputField
-                  placeholder="Enter your status message"
-                  value={statusMessage}
-                  onChangeText={setStatusMessage}
-                  style={{ color: colors.text.primary }}
-                  multiline
-                  numberOfLines={3}
-                />
-              </Input>
+              <StyledInput
+                placeholder="Enter your status message"
+                value={statusMessage}
+                onChangeText={setStatusMessage}
+                multiline
+                numberOfLines={3}
+              />
             </VStack>
           </VStack>
 

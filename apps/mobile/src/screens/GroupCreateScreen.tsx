@@ -16,9 +16,8 @@ import { Button, ButtonText } from '@ui/button';
 import { Box } from '@ui/box';
 import { Checkbox, CheckboxIndicator } from '@ui/checkbox';
 import { HStack } from '@ui/hstack';
-import { Input } from '@ui/input';
-import { InputField } from '@ui/input';
 import { Spinner } from '@ui/spinner';
+import StyledInput from '@ui/StyledInput';
 import { Text } from '@ui/text';
 import { VStack } from '@ui/vstack';
 
@@ -209,13 +208,11 @@ const GroupCreateScreen = () => {
       <VStack flex={1} style={{ padding: 16 }} space="md">
         <VStack space="sm">
           <Text style={{ fontSize: 16, fontWeight: '500' }}>Group Name</Text>
-          <Input>
-            <InputField
-              placeholder="Enter group name"
-              value={groupName}
-              onChangeText={setGroupName}
-            />
-          </Input>
+          <StyledInput
+            placeholder="Enter group name"
+            value={groupName}
+            onChangeText={setGroupName}
+          />
           <Button
             onPress={handleCreateGroup}
             isDisabled={

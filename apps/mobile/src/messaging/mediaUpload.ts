@@ -6,6 +6,7 @@ import {
   deleteObject,
 } from 'firebase/storage';
 import { storage } from '@/firebase/firebaseApp';
+import { getAudioBlob } from './audioRecording';
 
 export interface UploadProgress {
   bytesTransferred: number;
@@ -257,4 +258,62 @@ export async function getImageDimensions(
       }
     );
   });
+}
+
+/**
+ * Upload audio to Firebase Storage
+ */
+export async function uploadAudio(
+  chatId: string,
+  audioUri: string,
+  onProgress?: (progress: UploadProgress) => void
+): Promise<string> {
+  try {
+    // Generate unique filename
+    const filename = `${Date.now()}_${Math.random().toString(36).substring(7)}.m4a`;
+    const storagePath = `chatAudio/${chatId}/${filename}`;
+
+    // Create storage reference
+    const storageRef = ref(storage, storagePath);
+
+    // Convert audio URI to blob
+    const blob = await getAudioBlob(audioUri);
+
+    // Upload with progress tracking
+    const uploadTask = uploadBytesResumable(storageRef, blob);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        snapshot => {
+          // Progress tracking
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          if (onProgress) {
+            onProgress({
+              bytesTransferred: snapshot.bytesTransferred,
+              totalBytes: snapshot.totalBytes,
+              progress,
+            });
+          }
+        },
+        error => {
+          console.error('Audio upload error:', error);
+          reject(error);
+        },
+        async () => {
+          // Upload complete - get download URL
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadURL);
+          } catch (error) {
+            reject(error);
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Error uploading audio:', error);
+    throw error;
+  }
 }
