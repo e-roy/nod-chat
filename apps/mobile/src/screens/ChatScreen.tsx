@@ -21,6 +21,7 @@ import { useChatStore } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
 import { usePresenceStore } from '@/store/presence';
 import { useThemeStore } from '@/store/theme';
+import { useAIStore } from '@/store/ai';
 import { getColors } from '@/utils/colors';
 import { ChatMessage, User } from '@chatapp/shared';
 import MessageInput from '@/components/MessageInput';
@@ -48,6 +49,8 @@ const ChatScreen: React.FC = () => {
   const { isDark } = useThemeStore();
   const colors = getColors(isDark);
   const insets = useSafeAreaInsets();
+  const { loadChatAI, loadPriorities, loadCalendar, unsubscribeFromChat } =
+    useAIStore();
 
   const [messageText, setMessageText] = useState('');
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
@@ -94,6 +97,11 @@ const ChatScreen: React.FC = () => {
     setCurrentChat(chatId);
     loadMessages(chatId);
 
+    // Load cached AI data and initialize listeners
+    loadChatAI(chatId);
+    loadPriorities(chatId);
+    loadCalendar(chatId);
+
     // Mark existing messages as read immediately since user is viewing the chat
     const initialReadTimeout = setTimeout(() => {
       const { markMessagesAsRead } = useChatStore.getState();
@@ -102,8 +110,18 @@ const ChatScreen: React.FC = () => {
 
     return () => {
       clearTimeout(initialReadTimeout);
+      // Cleanup AI listeners
+      unsubscribeFromChat(chatId);
     };
-  }, [chatId, setCurrentChat, loadMessages]);
+  }, [
+    chatId,
+    setCurrentChat,
+    loadMessages,
+    loadChatAI,
+    loadPriorities,
+    loadCalendar,
+    unsubscribeFromChat,
+  ]);
 
   useEffect(() => {
     // Scroll to bottom when new messages arrive
@@ -209,7 +227,7 @@ const ChatScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
-      edges={['left', 'right', 'top']}
+      edges={['left', 'right', 'bottom']}
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}

@@ -147,8 +147,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
               ? 4
               : 8
             : Platform.OS === 'ios'
-              ? 28
-              : 36,
+              ? 16
+              : 24,
           backgroundColor: colors.bg.primary,
           borderTopWidth: 1,
           borderTopColor: colors.border.default,

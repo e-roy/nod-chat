@@ -9,6 +9,7 @@ import {
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import Constants from 'expo-constants';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -53,6 +54,7 @@ const auth = initializeAuth(app, {
 const db = getFirestore(app);
 const storage = getStorage(app);
 const rtdb = getDatabase(app);
+const functions = getFunctions(app);
 
 // For development mode, we need to connect to emulators BEFORE any operations
 if (isDevelopment) {
@@ -80,6 +82,8 @@ if (isDevelopment) {
     const databasePort = 9000;
     const storageHost = emulatorHost;
     const storagePort = 9199;
+    const functionsHost = emulatorHost;
+    const functionsPort = 5001;
 
     // Connect Auth emulator
     if (!auth.emulatorConfig) {
@@ -113,6 +117,15 @@ if (isDevelopment) {
       }
     }
 
+    // Connect Functions emulator
+    try {
+      connectFunctionsEmulator(functions, functionsHost, functionsPort);
+    } catch (emulatorError: any) {
+      if (!emulatorError.message?.includes('already been called')) {
+        throw emulatorError;
+      }
+    }
+
     emulatorsConnected = true;
   } catch (error) {
     console.error('Could not connect to Firebase emulators:', error);
@@ -123,5 +136,5 @@ if (isDevelopment) {
 // Export emulator status for debugging
 export const isEmulatorConnected = () => emulatorsConnected;
 
-export { auth, db, storage, rtdb };
+export { auth, db, storage, rtdb, functions };
 export default app;

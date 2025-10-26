@@ -23,6 +23,7 @@ import { useGroupStore } from '@/store/groups';
 import { useAuthStore } from '@/store/auth';
 import { usePresenceStore } from '@/store/presence';
 import { useThemeStore } from '@/store/theme';
+import { useAIStore } from '@/store/ai';
 import { getColors } from '@/utils/colors';
 import { ChatMessage, User } from '@chatapp/shared';
 import { RootStackParamList } from '@/types/navigation';
@@ -32,6 +33,7 @@ import GroupMemberAvatars from '@/components/GroupMemberAvatars';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
 
 import { db } from '@/firebase/firebaseApp';
+import { toTimestamp } from '@/utils/firestore';
 
 type GroupChatScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -55,6 +57,8 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
   const { groups, initializeTransport } = useGroupStore();
   const { user } = useAuthStore();
   const { userPresence } = usePresenceStore();
+  const { loadChatAI, loadPriorities, loadCalendar, unsubscribeFromChat } =
+    useAIStore();
 
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
@@ -72,13 +76,28 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
       loadMessages(groupId);
       // Mark messages as read when entering the chat
       markMessagesAsRead(groupId);
+      // Load cached AI data and initialize listeners
+      loadChatAI(groupId);
+      loadPriorities(groupId);
+      loadCalendar(groupId);
     }
+
+    return () => {
+      if (groupId) {
+        // Cleanup AI listeners
+        unsubscribeFromChat(groupId);
+      }
+    };
   }, [
     groupId,
     loadMessages,
     markMessagesAsRead,
     initializeChatTransport,
     initializeTransport,
+    loadChatAI,
+    loadPriorities,
+    loadCalendar,
+    unsubscribeFromChat,
   ]);
 
   // Note: Read status is handled by markMessagesAsRead in the chat store
@@ -105,7 +124,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
           photoURL: userData.photoURL,
           online: userData.online || false,
           lastSeen: userData.lastSeen,
-          createdAt: userData.createdAt?.toMillis?.() || Date.now(),
+          createdAt: toTimestamp(userData.createdAt),
         });
       });
 
@@ -242,7 +261,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
-      edges={['left', 'right', 'top']}
+      edges={['left', 'right', 'bottom']}
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}

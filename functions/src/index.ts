@@ -8,6 +8,10 @@
  */
 
 import { setGlobalOptions } from "firebase-functions";
+import { initializeGenkit } from "./ai/genkit";
+
+// Initialize Genkit on cold start
+initializeGenkit();
 
 // Import presence functions
 export {
@@ -18,6 +22,22 @@ export {
 
 // Import messaging functions
 export { onChatMessageCreated, onGroupMessageCreated } from "./messaging";
+
+// Import AI analysis functions
+export {
+  generateChatSummary,
+  extractChatActionItems,
+  extractChatDecisions,
+  searchChatMessages,
+} from "./ai/analysis";
+
+// Import AI trigger functions
+export {
+  onChatMessageCreatedDetectPriority,
+  onGroupMessageCreatedDetectPriority,
+  onChatMessageCreatedExtractCalendar,
+  onGroupMessageCreatedExtractCalendar,
+} from "./ai/triggers";
 
 // For cost control, you can set the maximum number of containers that can be
 // running at the same time. This helps mitigate the impact of unexpected

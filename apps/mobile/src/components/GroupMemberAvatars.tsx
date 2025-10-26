@@ -8,6 +8,7 @@ import { db } from '@/firebase/firebaseApp';
 import { User } from '@chatapp/shared';
 import { useThemeStore } from '@/store/theme';
 import { getColors } from '@/utils/colors';
+import { toTimestamp } from '@/utils/firestore';
 
 interface GroupMemberAvatarsProps {
   memberIds: string[];
@@ -48,7 +49,7 @@ const GroupMemberAvatars: React.FC<GroupMemberAvatarsProps> = ({
             photoURL: userData.photoURL,
             online: userData.online || false,
             lastSeen: userData.lastSeen,
-            createdAt: userData.createdAt?.toMillis?.() || Date.now(),
+            createdAt: toTimestamp(userData.createdAt),
           });
         });
 

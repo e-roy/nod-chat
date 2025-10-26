@@ -32,6 +32,37 @@ service cloud.firestore {
         allow read, write: if request.auth != null;
       }
     }
+    
+    // AI-related collections
+    // Chat AI analysis cache - readable by authenticated users
+    match /chatAI/{chatId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Chat priorities - readable by authenticated users
+    match /chatPriorities/{chatId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Chat calendar - readable by authenticated users
+    match /chatCalendar/{chatId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // User calendar - users can only read their own
+    match /userCalendar/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // User priorities - users can only read their own
+    match /userPriorities/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Only Cloud Functions can write
+    }
   }
 }
 

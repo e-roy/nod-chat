@@ -45,3 +45,74 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
 }
+
+// AI-related types
+
+export interface ActionItem {
+  id: string;
+  text: string;
+  assignee?: string;
+  status: "pending" | "done";
+}
+
+export interface Decision {
+  id: string;
+  subject: string;
+  decision: string;
+  timestamp: number;
+}
+
+export interface ChatAI {
+  chatId: string;
+  summary: string | null;
+  actionItems: ActionItem[];
+  decisions: Decision[];
+  lastUpdated: number;
+  messageCount: number;
+}
+
+export interface Priority {
+  messageId: string;
+  level: "high" | "urgent";
+  reason: string;
+  timestamp: number;
+}
+
+export interface ChatPriorities {
+  chatId: string;
+  priorities: Priority[];
+  lastUpdated: number;
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: number;
+  time?: string;
+  participants?: string[];
+  extractedFrom: string; // messageId
+}
+
+export interface ChatCalendar {
+  chatId: string;
+  events: CalendarEvent[];
+  lastUpdated: number;
+}
+
+export interface UserCalendar {
+  userId: string;
+  events: Array<CalendarEvent & { chatId: string }>;
+  lastUpdated: number;
+}
+
+export interface UserPriorities {
+  userId: string;
+  priorities: Array<Priority & { chatId: string }>;
+  lastUpdated: number;
+}
+
+export interface SearchResult {
+  messageId: string;
+  relevance: number;
+  snippet: string;
+}

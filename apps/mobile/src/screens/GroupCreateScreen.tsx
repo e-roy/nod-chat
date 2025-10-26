@@ -30,6 +30,7 @@ import { getColors } from '@/utils/colors';
 import { db } from '@/firebase/firebaseApp';
 import { User } from '@chatapp/shared';
 import { RootStackParamList } from '@/types/navigation';
+import { toTimestamp } from '@/utils/firestore';
 
 type GroupCreateScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -73,7 +74,7 @@ const GroupCreateScreen = () => {
           photoURL: data.photoURL,
           online: data.online || false,
           lastSeen: data.lastSeen,
-          createdAt: data.createdAt?.toMillis?.() || Date.now(),
+          createdAt: toTimestamp(data.createdAt),
         });
       });
 

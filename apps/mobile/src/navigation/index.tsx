@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   NavigationContainer,
   NavigationContainerRef,
@@ -6,8 +6,16 @@ import {
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MessageCircle, Users, Settings, Plus } from 'lucide-react-native';
-import { TouchableOpacity } from 'react-native';
+import {
+  MessageCircle,
+  Users,
+  Settings,
+  Plus,
+  Sparkles,
+  AlertCircle,
+  Calendar,
+} from 'lucide-react-native';
+import { TouchableOpacity, View, Text as RNText } from 'react-native';
 import { Box } from '@ui/box';
 
 import { useAuthStore } from '@/store/auth';
@@ -20,7 +28,11 @@ import {
   showLocalNotification,
 } from '@/messaging/notifications';
 import { useChatStore } from '@/store/chat';
+import { useAIStore } from '@/store/ai';
 import { RootStackParamList } from '@/types/navigation';
+import { AIActionSheet } from '@/components/AIActionSheet';
+import { PriorityActionSheet } from '@/components/PriorityActionSheet';
+import { CalendarActionSheet } from '@/components/CalendarActionSheet';
 
 import AuthScreen from '@/screens/AuthScreen';
 import ChatListScreen from '@/screens/ChatListScreen';
@@ -71,6 +83,114 @@ const CreateGroupButton = () => {
   );
 };
 
+const ChatAIButtons = ({ chatId }: { chatId: string }) => {
+  const colors = useNavigationTheme();
+  const { chatPriorities, chatCalendar } = useAIStore();
+  const [aiSheetOpen, setAiSheetOpen] = useState(false);
+  const [prioritySheetOpen, setPrioritySheetOpen] = useState(false);
+  const [calendarSheetOpen, setCalendarSheetOpen] = useState(false);
+
+  const priorities = chatPriorities.get(chatId);
+  const calendar = chatCalendar.get(chatId);
+  const priorityCount = priorities?.priorities.length || 0;
+  const calendarCount = calendar?.events.length || 0;
+
+  return (
+    <>
+      <View
+        style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}
+      >
+        <TouchableOpacity
+          onPress={() => setAiSheetOpen(true)}
+          style={{ marginHorizontal: 8 }}
+          accessibilityLabel="AI features"
+          accessibilityRole="button"
+        >
+          <Sparkles size={22} color={colors.headerTitle} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setPrioritySheetOpen(true)}
+          style={{ marginHorizontal: 8, position: 'relative' }}
+          accessibilityLabel="Priority messages"
+          accessibilityRole="button"
+        >
+          <AlertCircle size={22} color={colors.headerTitle} />
+          {priorityCount > 0 && (
+            <View
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                backgroundColor: '#EF4444',
+                borderRadius: 8,
+                minWidth: 16,
+                height: 16,
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingHorizontal: 4,
+              }}
+            >
+              <RNText
+                style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '600' }}
+              >
+                {priorityCount}
+              </RNText>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setCalendarSheetOpen(true)}
+          style={{ marginHorizontal: 8, position: 'relative' }}
+          accessibilityLabel="Calendar events"
+          accessibilityRole="button"
+        >
+          <Calendar size={22} color={colors.headerTitle} />
+          {calendarCount > 0 && (
+            <View
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                backgroundColor: '#3B82F6',
+                borderRadius: 8,
+                minWidth: 16,
+                height: 16,
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingHorizontal: 4,
+              }}
+            >
+              <RNText
+                style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '600' }}
+              >
+                {calendarCount}
+              </RNText>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <AIActionSheet
+        isOpen={aiSheetOpen}
+        onClose={() => setAiSheetOpen(false)}
+        chatId={chatId}
+      />
+      <PriorityActionSheet
+        isOpen={prioritySheetOpen}
+        onClose={() => setPrioritySheetOpen(false)}
+        chatId={chatId}
+      />
+      <CalendarActionSheet
+        isOpen={calendarSheetOpen}
+        onClose={() => setCalendarSheetOpen(false)}
+        chatId={chatId}
+      />
+    </>
+  );
+};
+
 const MainTabs = () => {
   const colors = useNavigationTheme();
 
@@ -83,14 +203,14 @@ const MainTabs = () => {
           backgroundColor: colors.tabBarBackground,
           borderTopWidth: 1,
           borderTopColor: colors.tabBarBorder,
-          paddingBottom: 8,
+          paddingBottom: 4,
           paddingTop: 8,
-          height: 88,
+          height: 80,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
-          marginTop: 4,
+          marginTop: 2,
         },
         headerStyle: {
           backgroundColor: colors.headerBackground,
@@ -255,10 +375,13 @@ const AppNavigator = () => {
               <Stack.Screen
                 name="Chat"
                 component={ChatScreen}
-                options={{
-                  title: 'Chat',
+                options={({ route }: any) => ({
+                  title: route.params?.participantName || 'Chat',
                   headerShown: true,
-                }}
+                  headerRight: () => (
+                    <ChatAIButtons chatId={route.params.chatId} />
+                  ),
+                })}
               />
               <Stack.Screen
                 name="NewChat"
@@ -281,10 +404,13 @@ const AppNavigator = () => {
               <Stack.Screen
                 name="GroupChat"
                 component={GroupChatScreen as any}
-                options={{
-                  title: 'Group Chat',
+                options={({ route }: any) => ({
+                  title: route.params?.groupName || 'Group Chat',
                   headerShown: true,
-                }}
+                  headerRight: () => (
+                    <ChatAIButtons chatId={route.params.groupId} />
+                  ),
+                })}
               />
               <Stack.Screen
                 name="GroupCreate"

@@ -18,6 +18,61 @@ const COLORS = {
   GREEN: '#10b981',
 } as const;
 
+/**
+ * Safely format a timestamp to a time string with date context
+ */
+const formatMessageTime = (timestamp: number): string => {
+  try {
+    // Ensure timestamp is a valid number
+    if (typeof timestamp !== 'number' || isNaN(timestamp)) {
+      return '--:--';
+    }
+
+    const messageDate = new Date(timestamp);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const messageDay = new Date(
+      messageDate.getFullYear(),
+      messageDate.getMonth(),
+      messageDate.getDate()
+    );
+
+    // Check if message is from today
+    const isToday = messageDay.getTime() === today.getTime();
+
+    // Check if message is from yesterday
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = messageDay.getTime() === yesterday.getTime();
+
+    // Format based on when the message was sent
+    if (isToday) {
+      // Just show the time for today's messages
+      return messageDate.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } else if (isYesterday) {
+      // Show "Yesterday HH:MM"
+      return `Yesterday ${messageDate.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}`;
+    } else {
+      // Show "MM/DD HH:MM" for older messages
+      return messageDate.toLocaleString([], {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+  } catch (error) {
+    console.warn('Error formatting timestamp:', error, timestamp);
+    return '--:--';
+  }
+};
+
 interface ReadByUser {
   uid: string;
   displayName?: string;
@@ -110,7 +165,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const bubbleBorderRadius = 16;
 
   return (
-    <HStack style={styles.container} space="md" alignItems="end">
+    <HStack style={styles.container} space="md" alignItems="start">
       {/* Left side: Avatar with online indicator or spacer */}
       <Box style={styles.avatarContainer}>
         {showAvatar && (
@@ -156,10 +211,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               {senderName}
             </RNText>
             <RNText style={[styles.timestamp, { color: timeColor }]}>
-              {new Date(message.createdAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {formatMessageTime(message.createdAt)}
             </RNText>
           </HStack>
 

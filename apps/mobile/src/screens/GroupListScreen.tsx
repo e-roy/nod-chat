@@ -66,7 +66,7 @@ const GroupListScreen = () => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
-      edges={['left', 'right', 'bottom']}
+      edges={['left', 'right']}
     >
       <FlatList
         data={groups}

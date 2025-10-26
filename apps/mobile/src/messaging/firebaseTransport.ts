@@ -22,6 +22,7 @@ import {
   Chat,
   Group,
 } from '@chatapp/shared';
+import { toTimestamp } from '@/utils/firestore';
 
 export class FirebaseTransport
   implements MessagingTransport, ChatTransport, GroupTransport
@@ -103,7 +104,7 @@ export class FirebaseTransport
             senderId: data.senderId,
             text: data.text,
             imageUrl: data.imageUrl,
-            createdAt: data.createdAt?.toMillis?.() || Date.now(),
+            createdAt: toTimestamp(data.createdAt),
             status: data.status || 'sent',
             readBy: data.readBy || undefined,
           };
@@ -143,7 +144,7 @@ export class FirebaseTransport
           senderId: data.senderId,
           text: data.text,
           imageUrl: data.imageUrl,
-          createdAt: data.createdAt?.toMillis?.() || Date.now(),
+          createdAt: toTimestamp(data.createdAt),
           status: data.status || 'sent',
           readBy: data.readBy || undefined,
         });
@@ -210,13 +211,12 @@ export class FirebaseTransport
                   senderId: data.lastMessage.senderId,
                   text: data.lastMessage.text,
                   imageUrl: data.lastMessage.imageUrl,
-                  createdAt:
-                    data.lastMessage.createdAt?.toMillis?.() || Date.now(),
+                  createdAt: toTimestamp(data.lastMessage.createdAt),
                   status: data.lastMessage.status || 'sent',
                 }
               : undefined,
-            createdAt: data.createdAt?.toMillis?.() || Date.now(),
-            updatedAt: data.updatedAt?.toMillis?.() || Date.now(),
+            createdAt: toTimestamp(data.createdAt),
+            updatedAt: toTimestamp(data.updatedAt),
           });
         }
       });
@@ -252,13 +252,12 @@ export class FirebaseTransport
                   senderId: data.lastMessage.senderId,
                   text: data.lastMessage.text,
                   imageUrl: data.lastMessage.imageUrl,
-                  createdAt:
-                    data.lastMessage.createdAt?.toMillis?.() || Date.now(),
+                  createdAt: toTimestamp(data.lastMessage.createdAt),
                   status: data.lastMessage.status || 'sent',
                 }
               : undefined,
-            createdAt: data.createdAt?.toMillis?.() || Date.now(),
-            updatedAt: data.updatedAt?.toMillis?.() || Date.now(),
+            createdAt: toTimestamp(data.createdAt),
+            updatedAt: toTimestamp(data.updatedAt),
           });
         }
       });
@@ -503,14 +502,13 @@ export class FirebaseTransport
                   senderId: data.lastMessage.senderId,
                   text: data.lastMessage.text,
                   imageUrl: data.lastMessage.imageUrl,
-                  createdAt:
-                    data.lastMessage.createdAt?.toMillis?.() || Date.now(),
+                  createdAt: toTimestamp(data.lastMessage.createdAt),
                   status: data.lastMessage.status || 'sent',
                   readBy: data.lastMessage.readBy || [],
                 }
               : undefined,
-            createdAt: data.createdAt?.toMillis?.() || Date.now(),
-            updatedAt: data.updatedAt?.toMillis?.() || Date.now(),
+            createdAt: toTimestamp(data.createdAt),
+            updatedAt: toTimestamp(data.updatedAt),
           });
         }
       });
@@ -545,14 +543,13 @@ export class FirebaseTransport
                   senderId: data.lastMessage.senderId,
                   text: data.lastMessage.text,
                   imageUrl: data.lastMessage.imageUrl,
-                  createdAt:
-                    data.lastMessage.createdAt?.toMillis?.() || Date.now(),
+                  createdAt: toTimestamp(data.lastMessage.createdAt),
                   status: data.lastMessage.status || 'sent',
                   readBy: data.lastMessage.readBy || [],
                 }
               : undefined,
-            createdAt: data.createdAt?.toMillis?.() || Date.now(),
-            updatedAt: data.updatedAt?.toMillis?.() || Date.now(),
+            createdAt: toTimestamp(data.createdAt),
+            updatedAt: toTimestamp(data.updatedAt),
           });
         }
       });

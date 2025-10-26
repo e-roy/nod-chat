@@ -53,7 +53,11 @@ const GroupItem: React.FC<GroupItemProps> = ({ group }) => {
 
           <VStack flex={1} space="xs">
             <HStack justifyContent="between" alignItems="center">
-              <RNText style={[styles.name, { color: colors.text.primary }]}>
+              <RNText
+                style={[styles.name, { color: colors.text.primary }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {group.name}
               </RNText>
               {lastMessageTime && (
@@ -87,7 +91,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   time: {
-    fontSize: 14,
+    fontSize: 12,
   },
   message: {
     fontSize: 14,
