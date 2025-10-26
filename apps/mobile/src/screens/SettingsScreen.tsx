@@ -111,13 +111,6 @@ const SettingsScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
       >
-        {/* Header */}
-        <Box style={styles.header}>
-          <RNText style={[styles.title, { color: colors.text.primary }]}>
-            Settings
-          </RNText>
-        </Box>
-
         {/* Profile Section */}
         <TouchableOpacity onPress={navigateToProfileEdit}>
           <Box
@@ -239,13 +232,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 32,
-  },
-  header: {
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
   },
   profileCard: {
     paddingHorizontal: 16,

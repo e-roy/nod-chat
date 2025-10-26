@@ -107,8 +107,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
       : '#dbeafe'
     : colors.text.muted;
 
+  const bubbleBorderRadius = 16;
+
   return (
-    <HStack style={styles.container} space="sm">
+    <HStack style={styles.container} space="md" alignItems="end">
       {/* Left side: Avatar with online indicator or spacer */}
       <Box style={styles.avatarContainer}>
         {showAvatar && (
@@ -140,8 +142,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
           style={[
             styles.messageBubble,
             {
-              padding: hasImage ? 8 : 12,
+              padding: hasImage ? 12 : 16,
               backgroundColor: bubbleBackgroundColor,
+              borderRadius: bubbleBorderRadius,
+              borderWidth: 1,
+              borderColor: colors.border.muted,
             },
           ]}
         >
@@ -160,10 +165,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
           {/* Image content */}
           {hasImage && (
-            <TouchableOpacity onPress={() => onImagePress(message.imageUrl!)}>
+            <TouchableOpacity
+              onPress={() => onImagePress(message.imageUrl!)}
+              style={{ marginTop: 8 }}
+            >
               <Image
                 source={{ uri: message.imageUrl! }}
-                style={styles.image}
+                style={[
+                  styles.image,
+                  {
+                    borderRadius: bubbleBorderRadius - 4,
+                  },
+                ]}
                 resizeMode="cover"
               />
             </TouchableOpacity>
@@ -242,27 +255,34 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: 12,
     paddingHorizontal: 16,
   },
   avatarContainer: {
-    width: 32,
+    width: 36,
     position: 'relative',
   },
   onlineIndicator: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: COLORS.GREEN,
     borderWidth: 2,
   },
   messageBubble: {
-    borderRadius: 8,
     alignSelf: 'flex-start',
     width: '100%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   senderName: {
     fontSize: 14,
@@ -270,15 +290,15 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
+    opacity: 0.8,
   },
   image: {
     width: 240,
     height: 240,
-    borderRadius: 8,
   },
   messageText: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
   },
   messageTextWithImage: {
     marginTop: 8,

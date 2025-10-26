@@ -8,7 +8,10 @@ import {
   Modal,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '@/types/navigation';
 import { doc, getDoc } from 'firebase/firestore';
@@ -44,6 +47,7 @@ const ChatScreen: React.FC = () => {
   const { userPresence } = usePresenceStore();
   const { isDark } = useThemeStore();
   const colors = getColors(isDark);
+  const insets = useSafeAreaInsets();
 
   const [messageText, setMessageText] = useState('');
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
@@ -205,11 +209,12 @@ const ChatScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
-      edges={['left', 'right', 'bottom']}
+      edges={['left', 'right', 'top']}
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 60 : 10}
       >
         {/* Connection Status Banner */}
         <ConnectionBanner />

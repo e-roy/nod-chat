@@ -6,7 +6,10 @@ import {
   Text as RNText,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -39,6 +42,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
   const { groupId } = route.params;
   const { isDark } = useThemeStore();
   const colors = getColors(isDark);
+  const insets = useSafeAreaInsets();
 
   const {
     messages,
@@ -238,11 +242,12 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
-      edges={['left', 'right', 'bottom']}
+      edges={['left', 'right', 'top']}
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 60 : 10}
       >
         {/* Group Header */}
         <Box
