@@ -1,11 +1,15 @@
 import { getAI } from "../client";
 import { googleAI } from "@genkit-ai/googleai";
 import { z } from "genkit";
+import type { MessageContext } from "../../types";
 
 /**
- * Detect priority level in a message
+ * Detect priority level in a message with conversation context
  */
-export async function detectPriority(messageText: string): Promise<{
+export async function detectPriority(
+  previousMessages: MessageContext[],
+  currentMessage: MessageContext
+): Promise<{
   isPriority: boolean;
   level?: "high" | "urgent";
   reason?: string;
@@ -23,6 +27,19 @@ export async function detectPriority(messageText: string): Promise<{
     reason: z.string().optional().describe("Brief reason for priority"),
   });
 
+  // Build conversation context
+  let conversationContext = "";
+  if (previousMessages.length > 0) {
+    conversationContext = "Previous conversation context:\n";
+    previousMessages.forEach((msg, index) => {
+      const date = new Date(msg.createdAt).toISOString();
+      conversationContext += `${index + 1}. ${msg.senderName} (${date}): ${msg.text}\n`;
+    });
+  }
+
+  const date = new Date(currentMessage.createdAt).toISOString();
+  const currentMsgContext = `Current message:\n${currentMessage.senderName} (${date}): ${currentMessage.text}`;
+
   const prompt = `You are analyzing a work message for priority/urgency.
 Detect if this message contains:
 - Urgent requests or blockers
@@ -30,10 +47,12 @@ Detect if this message contains:
 - Deadlines or time-sensitive matters
 - "ASAP", "urgent", "critical", "blocker" keywords
 - Questions needing immediate attention
+- Escalation in conversation urgency
 
-Message: "${messageText}"
+${conversationContext}
+${currentMsgContext}
 
-Determine if this is a priority message and classify its level.`;
+Consider the conversation flow when determining priority. Determine if this is a priority message and classify its level.`;
 
   try {
     const result = await aiClient.generate({

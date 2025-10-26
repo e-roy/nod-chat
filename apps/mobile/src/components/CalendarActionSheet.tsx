@@ -192,18 +192,31 @@ export const CalendarActionSheet: React.FC<CalendarActionSheetProps> = ({
                       space="sm"
                       style={{
                         justifyContent: 'space-between',
-                        marginBottom: 4,
+                        marginBottom: 8,
                       }}
                     >
-                      <RNText
-                        style={[
-                          styles.eventTitle,
-                          { color: colors.text.primary },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        {event.title}
-                      </RNText>
+                      <VStack space="xs" style={{ flex: 1 }}>
+                        <RNText
+                          style={[
+                            styles.eventTitle,
+                            { color: colors.text.primary },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {event.title}
+                        </RNText>
+                        {event.description && (
+                          <RNText
+                            style={[
+                              styles.eventDescription,
+                              { color: colors.text.secondary },
+                            ]}
+                            numberOfLines={2}
+                          >
+                            {event.description}
+                          </RNText>
+                        )}
+                      </VStack>
                       {isUpcoming(event.date) && (
                         <Box
                           style={[
@@ -223,41 +236,40 @@ export const CalendarActionSheet: React.FC<CalendarActionSheetProps> = ({
                       )}
                     </HStack>
 
-                    <HStack
-                      space="sm"
-                      style={{ alignItems: 'center', marginBottom: 4 }}
-                    >
-                      <RNText
-                        style={[
-                          styles.eventDate,
-                          { color: colors.text.secondary },
-                        ]}
-                      >
-                        📅 {formatDate(event.date)}
-                      </RNText>
-                      {event.time && (
+                    <VStack space="xs" style={{ marginBottom: 8 }}>
+                      <HStack space="md" style={{ alignItems: 'center' }}>
                         <RNText
                           style={[
-                            styles.eventTime,
+                            styles.eventDate,
                             { color: colors.text.secondary },
                           ]}
                         >
-                          🕐 {event.time}
+                          📅 {formatDate(event.date)}
+                        </RNText>
+                        {event.time && (
+                          <RNText
+                            style={[
+                              styles.eventTime,
+                              { color: colors.text.secondary },
+                            ]}
+                          >
+                            🕐 {event.time}
+                          </RNText>
+                        )}
+                      </HStack>
+
+                      {event.participants && event.participants.length > 0 && (
+                        <RNText
+                          style={[
+                            styles.participants,
+                            { color: colors.text.muted },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          👥 {event.participants.join(', ')}
                         </RNText>
                       )}
-                    </HStack>
-
-                    {event.participants && event.participants.length > 0 && (
-                      <RNText
-                        style={[
-                          styles.participants,
-                          { color: colors.text.muted },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        👥 {event.participants.join(', ')}
-                      </RNText>
-                    )}
+                    </VStack>
 
                     <RNText
                       style={[styles.tapHint, { color: colors.text.muted }]}
@@ -313,11 +325,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   eventItem: {
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderLeftWidth: 4,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   eventTitle: {
     fontSize: 16,
@@ -335,6 +352,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
   },
+  eventDescription: {
+    fontSize: 13,
+    marginBottom: 8,
+    lineHeight: 18,
+  },
   eventDate: {
     fontSize: 14,
   },
@@ -342,8 +364,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   participants: {
-    fontSize: 12,
-    marginBottom: 4,
+    fontSize: 13,
+    marginBottom: 6,
+    lineHeight: 18,
   },
   tapHint: {
     fontSize: 12,

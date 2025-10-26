@@ -5,28 +5,14 @@ import { extractActionItems } from "./analysis/actionItems";
 import { extractDecisions } from "./analysis/decisions";
 import { searchMessages } from "./analysis/search";
 import { isAIAvailable } from "./client";
+import type {
+  GenerateSummaryRequest,
+  ExtractActionItemsRequest,
+  ExtractDecisionsRequest,
+  SearchMessagesRequest,
+} from "../types";
 
 const db = admin.firestore();
-
-interface GenerateSummaryRequest {
-  chatId: string;
-  forceRefresh?: boolean;
-}
-
-interface ExtractActionItemsRequest {
-  chatId: string;
-  forceRefresh?: boolean;
-}
-
-interface ExtractDecisionsRequest {
-  chatId: string;
-  subject?: string;
-}
-
-interface SearchMessagesRequest {
-  chatId: string;
-  query: string;
-}
 
 /**
  * Generate chat summary - Callable function

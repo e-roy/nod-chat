@@ -91,6 +91,7 @@ export interface ChatPriorities {
 export interface CalendarEvent {
   id: string;
   title: string;
+  description?: string;
   date: number;
   time?: string;
   participants?: string[];

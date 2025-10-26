@@ -7,6 +7,13 @@ import { FieldValue } from "firebase-admin/firestore";
 import { detectPriority } from "./ai/detection/priority";
 import { extractCalendarEvents } from "./ai/detection/calendar";
 import { isAIAvailable } from "./ai/client";
+import type {
+  MessageData,
+  UserData,
+  ChatData,
+  GroupData,
+  MessageContext,
+} from "./types";
 
 // Initialize Firebase Admin if not already initialized
 if (getApps().length === 0) {
@@ -21,34 +28,82 @@ if (getApps().length === 0) {
 const db = getFirestore();
 const messaging = getMessaging();
 
-interface MessageData {
-  id: string;
-  chatId: string;
-  senderId: string;
-  text?: string;
-  imageUrl?: string | null;
-  createdAt: number | FieldValue;
-  status?: string;
-  readBy?: string[];
-}
+/**
+ * Fetch message context for AI processing
+ * Gets 5 previous messages before the triggered message with sender names
+ */
+async function fetchMessageContext(
+  chatId: string,
+  messageId: string,
+  collectionType: "chats" | "groups"
+): Promise<MessageContext[]> {
+  try {
+    // Get the triggered message document
+    const messageDoc = await db
+      .collection(collectionType)
+      .doc(chatId)
+      .collection("messages")
+      .doc(messageId)
+      .get();
 
-interface UserData {
-  uid: string;
-  email: string;
-  displayName?: string;
-  fcmToken?: string;
-}
+    if (!messageDoc.exists) {
+      return [];
+    }
 
-interface ChatData {
-  id: string;
-  participants: string[];
-  name?: string;
-}
+    const messageData = messageDoc.data() as MessageData;
+    const createdAt =
+      typeof messageData.createdAt === "number"
+        ? messageData.createdAt
+        : Date.now();
 
-interface GroupData {
-  id: string;
-  members: string[];
-  name: string;
+    // Fetch 5 previous messages
+    const messagesSnapshot = await db
+      .collection(collectionType)
+      .doc(chatId)
+      .collection("messages")
+      .orderBy("createdAt", "desc")
+      .where("createdAt", "<", createdAt)
+      .limit(5)
+      .get();
+
+    if (messagesSnapshot.empty) {
+      return [];
+    }
+
+    const messages: MessageContext[] = [];
+
+    for (const doc of messagesSnapshot.docs) {
+      const msgData = doc.data() as MessageData;
+
+      // Get sender info
+      const senderDoc = await db
+        .collection("users")
+        .doc(msgData.senderId)
+        .get();
+      const senderData = senderDoc.data() as UserData | undefined;
+      const senderName =
+        senderData?.displayName ||
+        senderData?.email?.split("@")[0] ||
+        "Unknown";
+
+      if (msgData.text && msgData.text.trim() !== "") {
+        messages.push({
+          senderName,
+          createdAt:
+            typeof msgData.createdAt === "number"
+              ? msgData.createdAt
+              : Date.now(),
+          text: msgData.text,
+        });
+      }
+    }
+
+    // Reverse to get chronological order
+    return messages.reverse();
+  } catch (error) {
+    logger.error("Error fetching message context:", error);
+    return [];
+  }
 }
 
 /**
@@ -339,8 +394,36 @@ async function handlePriorityDetection(
   }
 
   try {
-    // Detect priority
-    const priorityResult = await detectPriority(messageData.text);
+    // Fetch message context (5 previous messages)
+    const previousMessages = await fetchMessageContext(
+      messageId,
+      chatId,
+      collectionType
+    );
+
+    // Get sender name for current message
+    const senderDoc = await db
+      .collection("users")
+      .doc(messageData.senderId)
+      .get();
+    const senderData = senderDoc.data() as UserData | undefined;
+    const senderName =
+      senderData?.displayName || senderData?.email?.split("@")[0] || "Unknown";
+
+    const currentMessage = {
+      senderName,
+      createdAt:
+        typeof messageData.createdAt === "number"
+          ? messageData.createdAt
+          : Date.now(),
+      text: messageData.text,
+    };
+
+    // Detect priority with context
+    const priorityResult = await detectPriority(
+      previousMessages,
+      currentMessage
+    );
 
     if (!priorityResult.isPriority || !priorityResult.level) {
       return; // Not a priority message
@@ -433,11 +516,51 @@ async function handleCalendarExtraction(
           : data?.participants || [];
     }
 
-    // Extract calendar events (with participants included)
-    const events = await extractCalendarEvents(
-      messageData.text,
+    // Fetch message context (5 previous messages)
+    const previousMessages = await fetchMessageContext(
       messageId,
-      participants,
+      chatId,
+      collectionType
+    );
+
+    // Get sender name for current message
+    const senderDoc = await db
+      .collection("users")
+      .doc(messageData.senderId)
+      .get();
+    const senderData = senderDoc.data() as UserData | undefined;
+    const senderName =
+      senderData?.displayName || senderData?.email?.split("@")[0] || "Unknown";
+
+    const currentMessage = {
+      senderName,
+      createdAt:
+        typeof messageData.createdAt === "number"
+          ? messageData.createdAt
+          : Date.now(),
+      text: messageData.text,
+    };
+
+    // Build participant map (IDs to names) for better event storage
+    const participantMap = new Map<string, string>();
+    for (const participantId of participants) {
+      const userDoc = await db.collection("users").doc(participantId).get();
+      if (userDoc.exists) {
+        const userData = userDoc.data() as UserData | undefined;
+        const userName =
+          userData?.displayName ||
+          userData?.email?.split("@")[0] ||
+          participantId;
+        participantMap.set(participantId, userName);
+      }
+    }
+
+    // Extract calendar events with context
+    const events = await extractCalendarEvents(
+      previousMessages,
+      currentMessage,
+      messageId,
+      Array.from(participantMap.values()), // Pass names instead of IDs
       chatId
     );
 
