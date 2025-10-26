@@ -29,6 +29,8 @@ interface AIStore {
   loadPriorities: (chatId: string) => void;
   loadCalendar: (chatId: string) => void;
   generateSummary: (chatId: string, forceRefresh?: boolean) => Promise<string>;
+  checkSummaryStaleness: (chatId: string) => Promise<boolean>;
+  autoGenerateSummary: (chatId: string) => Promise<void>;
   extractActionItems: (
     chatId: string,
     forceRefresh?: boolean
@@ -155,11 +157,12 @@ export const useAIStore = create<AIStore>((set, get) => ({
     try {
       const callable = httpsCallable<
         { chatId: string; forceRefresh?: boolean },
-        { summary: string }
+        { summary: string; messageCount: number }
       >(functions, 'generateChatSummary');
 
       const result = await callable({ chatId, forceRefresh });
       const summary = result.data.summary;
+      const messageCount = result.data.messageCount;
 
       // Update local state
       set(state => {
@@ -171,11 +174,14 @@ export const useAIStore = create<AIStore>((set, get) => ({
           decisions: [],
           lastUpdated: 0,
           messageCount: 0,
+          messageCountAtSummary: 0,
         };
         newSummaries.set(chatId, {
           ...existing,
           summary,
           lastUpdated: Date.now(),
+          messageCount,
+          messageCountAtSummary: messageCount,
         });
         return { chatAISummaries: newSummaries };
       });
@@ -225,6 +231,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
           decisions: [],
           lastUpdated: 0,
           messageCount: 0,
+          messageCountAtSummary: 0,
         };
         newSummaries.set(chatId, {
           ...existing,
@@ -279,6 +286,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
           decisions: [],
           lastUpdated: 0,
           messageCount: 0,
+          messageCountAtSummary: 0,
         };
         newSummaries.set(chatId, {
           ...existing,
@@ -380,5 +388,72 @@ export const useAIStore = create<AIStore>((set, get) => ({
       newErrors.delete(chatId);
       return { errors: newErrors };
     });
+  },
+
+  // Check if summary is stale (new messages since last summary)
+  checkSummaryStaleness: async (chatId: string): Promise<boolean> => {
+    try {
+      const { chatAISummaries } = get();
+      const existing = chatAISummaries.get(chatId);
+
+      if (!existing || !existing.summary) {
+        return true; // No summary exists
+      }
+
+      // Get current message count
+      const callable = httpsCallable<
+        { chatId: string; forceRefresh?: boolean },
+        { summary: string; messageCount: number }
+      >(functions, 'generateChatSummary');
+
+      // Just check message count by attempting to get cached data
+      const result = await callable({ chatId, forceRefresh: false });
+      const currentMessageCount = result.data.messageCount;
+
+      // Check if there are new messages since summary was created
+      const messageCountAtSummary =
+        existing.messageCountAtSummary || existing.messageCount || 0;
+      const stale = currentMessageCount > messageCountAtSummary;
+
+      if (stale) {
+        console.log(
+          `Summary stale for ${chatId}: ${currentMessageCount} messages now vs ${messageCountAtSummary} at summary`
+        );
+      }
+
+      return stale;
+    } catch (error) {
+      console.error('Error checking summary staleness:', error);
+      return false; // Assume not stale on error
+    }
+  },
+
+  // Auto-generate summary if needed (checks staleness first)
+  autoGenerateSummary: async (chatId: string): Promise<void> => {
+    try {
+      const { checkSummaryStaleness, generateSummary } = get();
+
+      // Check if summary exists and is not stale
+      const { chatAISummaries } = get();
+      const existing = chatAISummaries.get(chatId);
+
+      if (!existing || !existing.summary) {
+        // No summary exists, generate one
+        await generateSummary(chatId);
+        return;
+      }
+
+      // Check if summary is stale
+      const isStale = await checkSummaryStaleness(chatId);
+
+      if (isStale) {
+        // Generate new summary in background
+        console.log(`Auto-generating stale summary for ${chatId}`);
+        await generateSummary(chatId, true);
+      }
+    } catch (error) {
+      console.error('Error in autoGenerateSummary:', error);
+      // Silently fail - don't throw, just log
+    }
   },
 }));

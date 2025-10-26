@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -52,7 +52,7 @@ export const AIActionSheet: React.FC<AIActionSheetProps> = ({
     searchResults,
     loading,
     errors,
-    generateSummary,
+    autoGenerateSummary,
     extractActionItems,
     extractDecisions,
     searchMessages,
@@ -68,20 +68,30 @@ export const AIActionSheet: React.FC<AIActionSheetProps> = ({
   const isLoadingDecisions = loading.get(`decisions-${chatId}`) || false;
   const isLoadingSearch = loading.get(`search-${chatId}`) || false;
 
+  // Auto-generate summary when sheet opens and summary tab is active
+  useEffect(() => {
+    if (isOpen && activeTab === 'summary') {
+      autoGenerateSummary(chatId).catch(err => {
+        console.error('Auto-generate summary failed:', err);
+      });
+    }
+  }, [isOpen, activeTab, chatId, autoGenerateSummary]);
+
+  // Auto-refresh when switching to summary tab
+  useEffect(() => {
+    if (isOpen && activeTab === 'summary') {
+      autoGenerateSummary(chatId).catch(err => {
+        console.error('Auto-generate summary on tab switch failed:', err);
+      });
+    }
+  }, [activeTab, chatId, isOpen, autoGenerateSummary]);
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     try {
       await searchMessages(chatId, searchQuery);
     } catch (err) {
       console.error('Search failed:', err);
-    }
-  };
-
-  const handleRefreshSummary = async () => {
-    try {
-      await generateSummary(chatId, true);
-    } catch (err) {
-      console.error('Summary generation failed:', err);
     }
   };
 
@@ -234,44 +244,101 @@ export const AIActionSheet: React.FC<AIActionSheetProps> = ({
     </VStack>
   );
 
-  const renderSummaryTab = () => (
-    <VStack space="md" style={styles.tabContent}>
-      <HStack space="sm" style={{ justifyContent: 'space-between' }}>
+  const renderSummaryTab = () => {
+    const hasSummary = !!chatAI?.summary;
+    const isLoading = isLoadingSummary;
+    const messageCount = chatAI?.messageCount || 0;
+    const lastUpdated = chatAI?.lastUpdated || 0;
+
+    // Helper to format relative time
+    const formatRelativeTime = (timestamp: number) => {
+      const now = Date.now();
+      const diff = now - timestamp;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (minutes < 1) return 'just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      return `${days}d ago`;
+    };
+
+    return (
+      <VStack space="md" style={styles.tabContent}>
         <RNText style={[styles.sectionTitle, { color: colors.text.primary }]}>
           Conversation Summary
         </RNText>
-        <TouchableOpacity
-          onPress={handleRefreshSummary}
-          disabled={isLoadingSummary}
-          accessibilityLabel="Refresh summary"
-          accessibilityRole="button"
-        >
-          <RefreshCw size={20} color={colors.text.secondary} />
-        </TouchableOpacity>
-      </HStack>
 
-      {isLoadingSummary ? (
-        <Box style={styles.centerContent}>
-          <ActivityIndicator color={colors.info} />
-        </Box>
-      ) : chatAI?.summary ? (
-        <ScrollView style={styles.summaryContent}>
-          <RNText style={[styles.summaryText, { color: colors.text.primary }]}>
-            {chatAI.summary}
-          </RNText>
-        </ScrollView>
-      ) : (
-        <Box>
-          <RNText style={[styles.emptyText, { color: colors.text.muted }]}>
-            No summary available. Generate one to get started.
-          </RNText>
-          <Button onPress={handleRefreshSummary} style={{ marginTop: 12 }}>
-            <ButtonText>Generate Summary</ButtonText>
-          </Button>
-        </Box>
-      )}
-    </VStack>
-  );
+        {isLoading && !hasSummary ? (
+          // Loading without existing summary
+          <Box style={styles.centerContent}>
+            <ActivityIndicator color={colors.info} />
+            <RNText
+              style={[
+                styles.emptyText,
+                { color: colors.text.muted, marginTop: 12 },
+              ]}
+            >
+              Generating summary...
+            </RNText>
+          </Box>
+        ) : hasSummary ? (
+          // Has summary (may be loading in background)
+          <>
+            {/* Loading overlay banner */}
+            {isLoading && (
+              <Box
+                style={[
+                  styles.loadingBanner,
+                  {
+                    backgroundColor: colors.info + '20',
+                    borderColor: colors.info + '40',
+                  },
+                ]}
+              >
+                <ActivityIndicator size="small" color={colors.info} />
+                <RNText
+                  style={[styles.loadingBannerText, { color: colors.info }]}
+                >
+                  Updating summary...
+                </RNText>
+              </Box>
+            )}
+
+            {/* Metadata */}
+            {messageCount > 0 && (
+              <RNText
+                style={[styles.metadataText, { color: colors.text.muted }]}
+              >
+                Summary of {messageCount} messages • Updated{' '}
+                {formatRelativeTime(lastUpdated)}
+              </RNText>
+            )}
+
+            {/* Summary content */}
+            <ScrollView
+              style={styles.summaryContent}
+              showsVerticalScrollIndicator
+            >
+              <RNText
+                style={[styles.summaryText, { color: colors.text.primary }]}
+              >
+                {chatAI.summary}
+              </RNText>
+            </ScrollView>
+          </>
+        ) : (
+          // No summary
+          <Box>
+            <RNText style={[styles.emptyText, { color: colors.text.muted }]}>
+              No summary available.
+            </RNText>
+          </Box>
+        )}
+      </VStack>
+    );
+  };
 
   const renderActionsTab = () => (
     <VStack space="md" style={styles.tabContent}>
@@ -525,6 +592,7 @@ const styles = StyleSheet.create({
   summaryText: {
     fontSize: 14,
     lineHeight: 20,
+    paddingVertical: 4,
   },
   actionItem: {
     padding: 12,
@@ -573,5 +641,21 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 14,
     flex: 1,
+  },
+  loadingBanner: {
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loadingBannerText: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  metadataText: {
+    fontSize: 12,
+    fontStyle: 'italic',
   },
 });

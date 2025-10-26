@@ -69,6 +69,7 @@ export interface ChatAI {
   decisions: Decision[];
   lastUpdated: number;
   messageCount: number;
+  messageCountAtSummary: number;
 }
 
 export interface Priority {

@@ -1,6 +1,7 @@
 import { genkit, z } from "genkit";
 import { googleAI } from "@genkit-ai/googleai";
 import * as dotenv from "dotenv";
+import { formatMessageDate, getCurrentDateContext } from "./dateUtils";
 
 // Load environment variables from .env.local if it exists
 dotenv.config({ path: ".env.local" });
@@ -60,20 +61,36 @@ export async function generateSummary(
     throw new Error("AI not available");
   }
 
+  const currentDateTime = getCurrentDateContext();
   const messagesText = messages
-    .map((m) => `[${new Date(m.createdAt).toLocaleString()}] ${m.text}`)
+    .map((m) => `[${formatMessageDate(m.createdAt)}] ${m.text}`)
     .join("\n");
 
   const prompt = `You are analyzing a work chat conversation for a remote team.
-Generate a concise summary (2-3 sentences) that captures the main topics, decisions, and action items discussed.
+Generate a comprehensive concise summary (1-2 paragraphs) that captures:
+- Main topics and discussions throughout the conversation
+- Recent developments and current focus (emphasize messages near the end)
+- Key decisions and agreements reached
+- Important action items and commitments
+
+The conversation is ordered chronologically. Pay special attention to the most recent messages as they reflect the current state of discussions.
+
+Current date/time for context: ${currentDateTime}
+
+CRITICAL INSTRUCTIONS for handling dates and times in your summary:
+1. When a message contains relative terms like "tomorrow", "today", "next week", etc., you MUST resolve these to actual dates based on the message timestamp
+2. Example: If a message dated "Mar 15, 3:45 PM" says "let's meet tomorrow at 3pm", the summary should say "Let's meet on March 16 at 3pm", NOT "Let's meet tomorrow at 3pm"
+3. When referencing action items, deadlines, or commitments, use the actual resolved dates
+4. For non-date-specific content, write in a concise, professional style without unnecessary timestamps
+5. DO NOT use relative terms like "today" or "tomorrow" in your summary - always use specific dates when discussing time-sensitive information
 
 Conversation:
 ${messagesText}
 
-Summary:`;
+Summary (resolve all relative time references to actual dates):`;
 
   const result = await aiClient.generate({
-    model: googleAI.model("gemini-2.0-flash-exp"),
+    model: googleAI.model("gemini-2.5-flash-lite"),
     prompt,
   });
 
@@ -97,7 +114,8 @@ export async function extractActionItems(
   const messagesText = messages
     .map((m) => {
       const userName = userMap.get(m.senderId) || m.senderId;
-      return `[${userName}] ${m.text}`;
+      const dateStr = formatMessageDate(m.createdAt);
+      return `[${dateStr}] [${userName}] ${m.text}`;
     })
     .join("\n");
 
@@ -123,7 +141,7 @@ Extract action items with clear descriptions. If someone is assigned, include th
 Return ONLY actionable items that require follow-up.`;
 
   const result = await aiClient.generate({
-    model: googleAI.model("gemini-2.0-flash-exp"),
+    model: googleAI.model("gemini-2.5-flash-lite"),
     prompt,
     output: { schema: ActionItemSchema },
   });
@@ -152,7 +170,7 @@ export async function extractDecisions(
   }
 
   const messagesText = messages
-    .map((m) => `[${new Date(m.createdAt).toLocaleString()}] ${m.text}`)
+    .map((m) => `[${formatMessageDate(m.createdAt)}] ${m.text}`)
     .join("\n");
 
   const DecisionSchema = z.object({
@@ -162,7 +180,7 @@ export async function extractDecisions(
         decision: z.string().describe("The decision made"),
         timestamp: z
           .string()
-          .describe("Approximate time (relative or absolute)"),
+          .describe("Actual date and time when the decision was made"),
       })
     ),
   });
@@ -176,13 +194,15 @@ Extract all decisions, agreements, and conclusions reached.
 
 ${subjectFilter}
 
+IMPORTANT: Use the actual dates and times from the conversation. Do NOT use relative terms like "yesterday" or "today" - use the exact dates provided.
+
 Conversation:
 ${messagesText}
 
-Identify clear decisions made by the team. Group by subject/topic.`;
+Identify clear decisions made by the team. Group by subject/topic. Include the exact date and time from the conversation when each decision was made.`;
 
   const result = await aiClient.generate({
-    model: googleAI.model("gemini-2.0-flash-exp"),
+    model: googleAI.model("gemini-2.5-flash-lite"),
     prompt,
     output: { schema: DecisionSchema },
   });
@@ -236,7 +256,7 @@ ${messagesText}
 Return the top 5 most relevant messages with their index, relevance score (0-100), and a brief snippet explaining why it's relevant.`;
 
   const result = await aiClient.generate({
-    model: googleAI.model("gemini-2.0-flash-exp"),
+    model: googleAI.model("gemini-2.5-flash-lite"),
     prompt,
     output: { schema: SearchResultSchema },
   });
@@ -286,7 +306,7 @@ Determine if this is a priority message and classify its level.`;
 
   try {
     const result = await aiClient.generate({
-      model: googleAI.model("gemini-2.0-flash-exp"),
+      model: googleAI.model("gemini-2.5-flash-lite"),
       prompt,
       output: { schema: PrioritySchema },
     });
@@ -348,7 +368,7 @@ Extract events with dates and times. If no specific events are mentioned, return
 
   try {
     const result = await aiClient.generate({
-      model: googleAI.model("gemini-2.0-flash-exp"),
+      model: googleAI.model("gemini-2.5-flash-lite"),
       prompt,
       output: { schema: EventSchema },
     });

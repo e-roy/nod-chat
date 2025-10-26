@@ -65,13 +65,13 @@ export const generateChatSummary = onCall<GenerateSummaryRequest>(
       const isGroup = chatId.startsWith("group_");
       const parentCollection = isGroup ? "groups" : "chats";
 
-      // Fetch last 100 messages from subcollection
+      // Fetch last 300 messages from subcollection
       const messagesSnapshot = await db
         .collection(parentCollection)
         .doc(chatId)
         .collection("messages")
         .orderBy("createdAt", "desc")
-        .limit(100)
+        .limit(300)
         .get();
 
       if (messagesSnapshot.empty) {
@@ -89,18 +89,21 @@ export const generateChatSummary = onCall<GenerateSummaryRequest>(
 
       const summary = await generateSummary(messages);
 
+      const messageCount = messages.length;
+
       // Update cache in chatAI collection
       await aiDocRef.set(
         {
           chatId,
           summary,
           lastUpdated: Date.now(),
-          messageCount: messages.length,
+          messageCount,
+          messageCountAtSummary: messageCount,
         },
         { merge: true }
       );
 
-      return { summary };
+      return { summary, messageCount };
     } catch (error) {
       console.error("Error generating summary:", error);
       throw new HttpsError("internal", "Failed to generate summary");
