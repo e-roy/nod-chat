@@ -8,7 +8,7 @@
  */
 
 import { setGlobalOptions } from "firebase-functions";
-import { initializeGenkit } from "./ai/genkit";
+import { initializeGenkit } from "./ai/client";
 
 // Initialize Genkit on cold start
 initializeGenkit();

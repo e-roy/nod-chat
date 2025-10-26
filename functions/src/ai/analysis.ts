@@ -1,12 +1,10 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import {
-  generateSummary,
-  extractActionItems,
-  extractDecisions,
-  searchMessages,
-  isAIAvailable,
-} from "./genkit";
+import { generateSummary } from "./analysis/summary";
+import { extractActionItems } from "./analysis/actionItems";
+import { extractDecisions } from "./analysis/decisions";
+import { searchMessages } from "./analysis/search";
+import { isAIAvailable } from "./client";
 
 const db = admin.firestore();
 

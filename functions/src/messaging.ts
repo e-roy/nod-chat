@@ -4,11 +4,9 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import * as logger from "firebase-functions/logger";
 import { FieldValue } from "firebase-admin/firestore";
-import {
-  detectPriority,
-  extractCalendarEvents,
-  isAIAvailable,
-} from "./ai/genkit";
+import { detectPriority } from "./ai/detection/priority";
+import { extractCalendarEvents } from "./ai/detection/calendar";
+import { isAIAvailable } from "./ai/client";
 
 // Initialize Firebase Admin if not already initialized
 if (getApps().length === 0) {
