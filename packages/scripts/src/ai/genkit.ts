@@ -94,7 +94,33 @@ Requirements:
 - About 20% of messages should include images (screenshots, diagrams, etc.)
 - Alternate between participants naturally
 
-Generate a contextual, realistic conversation where messages reference and respond to previous messages.`;
+Conversation Structure:
+- Create a cohesive thread with 1-2 problem-resolution arcs spanning the entire conversation
+- Problems should be introduced early, discussed collaboratively, and resolved by the end
+- Show realistic acknowledgment patterns ("got it", "looking into it", "makes sense", "checking now...")
+- Include status updates as problems are being worked on ("investigating...", "found it!", "fixed!")
+- Demonstrate collaborative problem-solving with multiple people contributing perspectives
+- Start with context-setting or problem introduction (first 20% of messages)
+- Build discussion and exploration (middle 40-50%)
+- Include acknowledgments and solutions (next 20-30%)
+- Conclude with resolution or action items (final 10-20%)
+
+Problem-Resolution Examples to include:
+- Bug report → investigation → root cause identified → fix deployed → confirmation
+- Feature request → discussion → design decision → implementation plan → next steps
+- Deployment issue → rollback → investigation → fix → re-deploy → verification
+- Meeting conflict → alternatives suggested → consensus reached → calendar updated
+- Blocked work → dependency identified → unblocking in progress → resumed
+
+Natural Conversation Flow:
+- People may respond to messages from several messages ago (thread-like feel)
+- Include realistic async responses ("checking now...", "one sec", "let me look into that")
+- Show people jumping in to help or provide context ("that reminds me...", "actually...")
+- Include appreciation and acknowledgment ("thanks!", "thanks for catching that!", "sounds good")
+- Add clarifying questions and detailed answers
+- Show people building on each other's ideas with "yeah, and..." or "also consider..."
+
+Generate a contextual, realistic conversation where messages reference and respond to previous messages, creating natural problem-solving threads with clear beginnings, discussions, resolutions, and acknowledgments.`;
 
     const result = await ai.generate({
       model: googleAI.model("gemini-2.5-flash"),

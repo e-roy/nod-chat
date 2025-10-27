@@ -50,13 +50,16 @@ interface ChatActions {
   clearHighlight: () => void;
 }
 
-// Store for FlatList refs - we'll use this to access the refs from anywhere
-const flatListRefs = new Map<string, React.RefObject<any>>();
+import { FlatList } from 'react-native';
 
-export const registerFlatListRef = (
-  chatId: string,
-  ref: React.RefObject<any>
-) => {
+type FlatListRef =
+  | React.RefObject<FlatList<unknown>>
+  | React.RefObject<FlatList<unknown> | null>;
+
+// Store for FlatList refs - we'll use this to access the refs from anywhere
+const flatListRefs = new Map<string, FlatListRef>();
+
+export const registerFlatListRef = (chatId: string, ref: FlatListRef) => {
   flatListRefs.set(chatId, ref);
 };
 
@@ -65,18 +68,40 @@ export const scrollToMessageById = async (
   messageId: string
 ) => {
   const ref = flatListRefs.get(chatId);
-  if (!ref?.current) return;
+  if (!ref?.current) {
+    return;
+  }
 
   // Get messages for this chat from the store
   const state = useChatStore.getState();
   const messages = state.messages.get(chatId) || [];
 
+  if (messages.length === 0) {
+    return;
+  }
+
   // Find the message index
   const index = messages.findIndex((msg: ChatMessage) => msg.id === messageId);
-  if (index === -1) return;
+  if (index === -1) {
+    return;
+  }
 
-  // Scroll to the message
-  ref.current.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+  try {
+    // Try scrollToIndex first
+    ref.current.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: 0.5,
+    });
+  } catch (error) {
+    // Fallback: scroll to an estimated position
+    // Estimate ~100px per message
+    const estimatedOffset = index * 100;
+    ref.current.scrollToOffset({
+      offset: estimatedOffset,
+      animated: true,
+    });
+  }
 };
 
 export const useChatStore = create<ChatState & ChatActions>((set, get) => ({

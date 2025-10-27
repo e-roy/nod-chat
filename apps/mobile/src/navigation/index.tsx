@@ -14,6 +14,7 @@ import {
   Sparkles,
   AlertCircle,
   Calendar,
+  Calendar as CalendarIcon,
 } from 'lucide-react-native';
 import { TouchableOpacity, View, Text as RNText } from 'react-native';
 import { Box } from '@ui/box';
@@ -43,6 +44,8 @@ import ProfileEditScreen from '@/screens/ProfileEditScreen';
 import GroupListScreen from '@/screens/GroupListScreen';
 import GroupChatScreen from '@/screens/GroupChatScreen';
 import GroupCreateScreen from '@/screens/GroupCreateScreen';
+import PrioritiesScreen from '@/screens/PrioritiesScreen';
+import CalendarScreen from '@/screens/CalendarScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -191,6 +194,40 @@ const ChatAIButtons = ({ chatId }: { chatId: string }) => {
   );
 };
 
+const PriorityTabIcon = ({ color, size }: { color: string; size: number }) => {
+  const { user } = useAuthStore();
+  const { userPriorities } = useAIStore();
+
+  const urgentCount =
+    userPriorities?.priorities.filter(p => p.level === 'urgent').length || 0;
+
+  return (
+    <Box style={{ position: 'relative' }}>
+      <AlertCircle size={size} color={color} />
+      {urgentCount > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            top: -6,
+            right: -6,
+            backgroundColor: '#EF4444',
+            borderRadius: 10,
+            minWidth: 18,
+            height: 18,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 5,
+          }}
+        >
+          <RNText style={{ color: '#ffffff', fontSize: 10, fontWeight: '700' }}>
+            {urgentCount > 9 ? '9+' : urgentCount}
+          </RNText>
+        </View>
+      )}
+    </Box>
+  );
+};
+
 const MainTabs = () => {
   const colors = useNavigationTheme();
 
@@ -255,6 +292,32 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen
+        name="Priorities"
+        component={PrioritiesScreen}
+        options={{
+          title: 'Priorities',
+          tabBarIcon: ({ color, size }) => (
+            <PriorityTabIcon color={color} size={size} />
+          ),
+          tabBarAccessibilityLabel: 'Priorities tab',
+          headerTitle: 'Priorities',
+        }}
+      />
+      <Tab.Screen
+        name="Calendar"
+        component={CalendarScreen}
+        options={{
+          title: 'Calendar',
+          tabBarIcon: ({ color, size }) => (
+            <Box>
+              <CalendarIcon size={size} color={color} />
+            </Box>
+          ),
+          tabBarAccessibilityLabel: 'Calendar tab',
+          headerTitle: 'Calendar',
+        }}
+      />
+      <Tab.Screen
         name="Settings"
         component={SettingsScreen}
         options={{
@@ -276,8 +339,17 @@ const AppNavigator = () => {
   const { user, loading } = useAuthStore();
   const colors = useNavigationTheme();
   const { currentChatId } = useChatStore();
+  const { loadUserPriorities, loadUserCalendar } = useAIStore();
   const navigationRef =
     useRef<NavigationContainerRef<RootStackParamList>>(null);
+
+  // Load user-level data when user logs in
+  useEffect(() => {
+    if (user) {
+      loadUserPriorities(user.uid);
+      loadUserCalendar(user.uid);
+    }
+  }, [user, loadUserPriorities, loadUserCalendar]);
 
   useEffect(() => {
     if (!user) return;

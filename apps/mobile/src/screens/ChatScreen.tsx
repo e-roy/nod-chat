@@ -253,6 +253,13 @@ const ChatScreen: React.FC = () => {
           renderItem={renderMessage}
           style={[styles.container, { backgroundColor: colors.bg.primary }]}
           contentContainerStyle={{ paddingVertical: 12 }}
+          onScrollToIndexFailed={info => {
+            // Scroll to an estimated position instead
+            flatListRef.current?.scrollToOffset({
+              offset: info.index * 100,
+              animated: true,
+            });
+          }}
           // onContentSizeChange removed to prevent auto-scroll to bottom
         />
 

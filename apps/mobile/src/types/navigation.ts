@@ -18,6 +18,8 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   Chats: undefined;
   Groups: undefined;
+  Priorities: undefined;
+  Calendar: undefined;
   Settings: undefined;
 };
 

@@ -144,6 +144,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
 
   useEffect(() => {
     loadUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group?.members]);
 
   const handleSendMessage = async () => {
@@ -322,6 +323,13 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
           renderItem={renderMessage}
           style={{ flex: 1, backgroundColor: colors.bg.primary }}
           contentContainerStyle={{ paddingVertical: 12 }}
+          onScrollToIndexFailed={info => {
+            // Scroll to an estimated position instead
+            flatListRef.current?.scrollToOffset({
+              offset: info.index * 100,
+              animated: true,
+            });
+          }}
           // onContentSizeChange removed to prevent auto-scroll to bottom
           ListEmptyComponent={
             <VStack

@@ -6,6 +6,8 @@ import {
   ChatAI,
   ChatPriorities,
   ChatCalendar,
+  UserPriorities,
+  UserCalendar,
   ActionItem,
   Decision,
   SearchResult,
@@ -16,6 +18,8 @@ interface AIStore {
   chatAISummaries: Map<string, ChatAI>;
   chatPriorities: Map<string, ChatPriorities>;
   chatCalendar: Map<string, ChatCalendar>;
+  userPriorities: UserPriorities | null;
+  userCalendar: UserCalendar | null;
   searchResults: Map<string, SearchResult[]>;
   loading: Map<string, boolean>;
   errors: Map<string, string>;
@@ -23,11 +27,15 @@ interface AIStore {
   // Listeners
   priorityListeners: Map<string, Unsubscribe>;
   calendarListeners: Map<string, Unsubscribe>;
+  userPriorityListener: Unsubscribe | null;
+  userCalendarListener: Unsubscribe | null;
 
   // Actions
   loadChatAI: (chatId: string) => Promise<void>;
   loadPriorities: (chatId: string) => void;
   loadCalendar: (chatId: string) => void;
+  loadUserPriorities: (userId: string) => void;
+  loadUserCalendar: (userId: string) => void;
   generateSummary: (chatId: string, forceRefresh?: boolean) => Promise<string>;
   checkSummaryStaleness: (chatId: string) => Promise<boolean>;
   autoGenerateSummary: (chatId: string) => Promise<void>;
@@ -50,11 +58,15 @@ export const useAIStore = create<AIStore>((set, get) => ({
   chatAISummaries: new Map(),
   chatPriorities: new Map(),
   chatCalendar: new Map(),
+  userPriorities: null,
+  userCalendar: null,
   searchResults: new Map(),
   loading: new Map(),
   errors: new Map(),
   priorityListeners: new Map(),
   calendarListeners: new Map(),
+  userPriorityListener: null,
+  userCalendarListener: null,
 
   // Load chat AI data from Firestore
   loadChatAI: async (chatId: string) => {
@@ -178,6 +190,124 @@ export const useAIStore = create<AIStore>((set, get) => ({
       newListeners.set(chatId, unsubscribe);
       return { calendarListeners: newListeners };
     });
+  },
+
+  // Subscribe to user-level priorities
+  loadUserPriorities: (userId: string) => {
+    const { userPriorityListener } = get();
+
+    // Unsubscribe existing listener if any
+    if (userPriorityListener) {
+      userPriorityListener();
+    }
+
+    // Set loading state
+    set(state => {
+      const newLoading = new Map(state.loading);
+      newLoading.set('user-priorities', true);
+      return { loading: newLoading };
+    });
+
+    // Clear any existing errors
+    set(state => {
+      const newErrors = new Map(state.errors);
+      newErrors.delete('user-priorities');
+      return { errors: newErrors };
+    });
+
+    // Subscribe to user priorities
+    const unsubscribe = onSnapshot(
+      doc(db, 'userPriorities', userId),
+      snapshot => {
+        if (snapshot.exists()) {
+          const data = snapshot.data() as UserPriorities;
+          set(state => {
+            const newLoading = new Map(state.loading);
+            newLoading.set('user-priorities', false);
+            return { userPriorities: data, loading: newLoading };
+          });
+        } else {
+          // Document doesn't exist yet - clear loading
+          set(state => {
+            const newLoading = new Map(state.loading);
+            newLoading.set('user-priorities', false);
+            return { userPriorities: null, loading: newLoading };
+          });
+        }
+      },
+      error => {
+        console.error('Error loading user priorities:', error);
+        set(state => {
+          const newErrors = new Map(state.errors);
+          newErrors.set('user-priorities', 'Failed to load priorities');
+          const newLoading = new Map(state.loading);
+          newLoading.set('user-priorities', false);
+          return { errors: newErrors, loading: newLoading };
+        });
+      }
+    );
+
+    // Store listener
+    set({ userPriorityListener: unsubscribe });
+  },
+
+  // Subscribe to user-level calendar
+  loadUserCalendar: (userId: string) => {
+    const { userCalendarListener } = get();
+
+    // Unsubscribe existing listener if any
+    if (userCalendarListener) {
+      userCalendarListener();
+    }
+
+    // Set loading state
+    set(state => {
+      const newLoading = new Map(state.loading);
+      newLoading.set('user-calendar', true);
+      return { loading: newLoading };
+    });
+
+    // Clear any existing errors
+    set(state => {
+      const newErrors = new Map(state.errors);
+      newErrors.delete('user-calendar');
+      return { errors: newErrors };
+    });
+
+    // Subscribe to user calendar
+    const unsubscribe = onSnapshot(
+      doc(db, 'userCalendar', userId),
+      snapshot => {
+        if (snapshot.exists()) {
+          const data = snapshot.data() as UserCalendar;
+          set(state => {
+            const newLoading = new Map(state.loading);
+            newLoading.set('user-calendar', false);
+            return { userCalendar: data, loading: newLoading };
+          });
+        } else {
+          // Document doesn't exist yet - clear loading
+          set(state => {
+            const newLoading = new Map(state.loading);
+            newLoading.set('user-calendar', false);
+            return { userCalendar: null, loading: newLoading };
+          });
+        }
+      },
+      error => {
+        console.error('Error loading user calendar:', error);
+        set(state => {
+          const newErrors = new Map(state.errors);
+          newErrors.set('user-calendar', 'Failed to load calendar');
+          const newLoading = new Map(state.loading);
+          newLoading.set('user-calendar', false);
+          return { errors: newErrors, loading: newLoading };
+        });
+      }
+    );
+
+    // Store listener
+    set({ userCalendarListener: unsubscribe });
   },
 
   // Generate summary using Firebase callable function
