@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -6,26 +6,29 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { RefreshCw } from 'lucide-react-native';
 import { Box } from '@ui/box';
 import { VStack } from '@ui/vstack';
-import { HStack } from '@ui/hstack';
 import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
 import { getColors } from '@/utils/colors';
 import { useAIStore } from '@/store/ai';
 import { useChatStore } from '@/store/chat';
-import { CalendarList } from '@/components/CalendarList';
+import { useGroupStore } from '@/store/groups';
+import { CalendarContainer } from '@/components/calendar';
 
 export default function CalendarScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
   const { isDark } = useThemeStore();
   const colors = getColors(isDark);
   const { user } = useAuthStore();
   const { userCalendar, loadUserCalendar, loading, errors, clearError } =
     useAIStore();
   const { scrollToMessage, chats } = useChatStore();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const {
+    groups,
+    loadGroups,
+    initializeTransport: initializeGroupTransport,
+  } = useGroupStore();
 
   const isLoading = loading.get('user-calendar') ?? false;
   const error = errors.get('user-calendar');
@@ -33,13 +36,16 @@ export default function CalendarScreen() {
   useEffect(() => {
     if (user) {
       loadUserCalendar(user.uid);
+      // Load groups so we can navigate to them
+      initializeGroupTransport();
+      loadGroups();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const events = userCalendar?.events || [];
-  const sortedEvents = [...events].sort((a, b) => b.date - a.date);
 
-  // Create a map of chatId -> chat name
+  // Create a map of chatId -> chat name (including groups)
   const chatNames = new Map<string, string>();
   chats.forEach(chat => {
     // For one-on-one chats, get the other participant's name
@@ -50,23 +56,41 @@ export default function CalendarScreen() {
       chatNames.set(chat.id, 'Chat');
     }
   });
+  // Add group names
+  groups.forEach(group => {
+    chatNames.set(group.id, group.name);
+  });
 
-  const handleItemPress = async (messageId: string, chatId: string) => {
+  const handleItemPress = async (messageId: string, chatId?: string) => {
+    // If chatId wasn't provided, find it from the event
+    let targetChatId = chatId;
+    if (!targetChatId) {
+      const event = events.find(e => e.extractedFrom === messageId);
+      if (!event || !event.chatId) return;
+      targetChatId = event.chatId;
+    }
+
     try {
-      // Find the chat
-      const chat = chats.find(c => c.id === chatId);
-      if (!chat) {
-        return;
-      }
+      // Check if it's a group chat first
+      const isGroup = targetChatId.startsWith('group_');
 
-      // Navigate to the chat screen first
-      if (chat.name) {
-        // Group chat
+      if (isGroup) {
+        // Find in groups
+        const group = groups.find(g => g.id === targetChatId);
+        if (!group) {
+          return;
+        }
+
         navigation.navigate('GroupChat', {
-          groupId: chatId,
-          groupName: chat.name,
+          groupId: targetChatId,
         });
       } else {
+        // Find in regular chats
+        const chat = chats.find(c => c.id === targetChatId);
+        if (!chat) {
+          return;
+        }
+
         // One-on-one chat - get other participant info
         const otherParticipantId = chat.participants.find(p => p !== user?.uid);
         if (!otherParticipantId) {
@@ -87,7 +111,7 @@ export default function CalendarScreen() {
         }
 
         navigation.navigate('Chat', {
-          chatId,
+          chatId: targetChatId,
           participantName,
         });
       }
@@ -95,60 +119,36 @@ export default function CalendarScreen() {
       // Wait for navigation and messages to load
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Scroll to the message
-      await scrollToMessage(chatId, messageId, 'calendar');
-    } catch {
+      // Scroll to the message with retries
+      let retries = 0;
+      const maxRetries = 5;
+      while (retries < maxRetries) {
+        try {
+          await scrollToMessage(targetChatId, messageId, 'calendar');
+          break;
+        } catch (err) {
+          retries++;
+          if (retries < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+      }
+    } catch (err) {
       // Silently handle errors
-    }
-  };
-
-  const handleRefresh = async () => {
-    if (!user) return;
-    setIsRefreshing(true);
-    try {
-      clearError('user-calendar');
-      loadUserCalendar(user.uid);
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (error) {
-      console.error('Error refreshing calendar:', error);
-    } finally {
-      setIsRefreshing(false);
     }
   };
 
   const handleRetry = () => {
     if (!user) return;
     clearError('user-calendar');
-    loadUserCalendar(user.uid);
   };
 
   return (
     <Box style={[styles.container, { backgroundColor: colors.bg.primary }]}>
       <VStack space="md" style={styles.content}>
-        <HStack
-          space="sm"
-          style={{
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: 16,
-          }}
-        >
-          <RNText style={[styles.title, { color: colors.text.primary }]}>
-            Calendar Events
-          </RNText>
-          <TouchableOpacity
-            onPress={handleRefresh}
-            disabled={isRefreshing}
-            accessibilityLabel="Refresh calendar"
-            accessibilityRole="button"
-          >
-            {isRefreshing ? (
-              <ActivityIndicator size="small" color={colors.text.secondary} />
-            ) : (
-              <RefreshCw size={22} color={colors.text.secondary} />
-            )}
-          </TouchableOpacity>
-        </HStack>
+        <RNText style={[styles.title, { color: colors.text.primary }]}>
+          Calendar Events
+        </RNText>
 
         {/* Error State */}
         {error && (
@@ -179,15 +179,12 @@ export default function CalendarScreen() {
 
         {/* Events List */}
         {!error && !isLoading && (
-          <CalendarList
-            events={sortedEvents}
+          <CalendarContainer
+            events={events}
             onItemPress={handleItemPress}
             showChatContext={true}
             chatNames={chatNames}
             colors={colors}
-            emptyMessage="No calendar events found"
-            emptySubmessage="Calendar events from all your chats will appear here"
-            emptyExample=""
           />
         )}
       </VStack>
@@ -224,7 +221,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   retryButtonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },

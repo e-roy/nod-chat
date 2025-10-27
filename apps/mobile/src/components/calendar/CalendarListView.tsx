@@ -11,12 +11,13 @@ import { Box } from '@ui/box';
 import { VStack } from '@ui/vstack';
 import { HStack } from '@ui/hstack';
 import { CalendarEvent } from '@chatapp/shared';
+import { formatDate } from '@/utils/dateUtils';
 
-interface CalendarListProps {
+interface CalendarListViewProps {
   events: CalendarEvent[];
-  onItemPress: (messageId: string, chatId: string) => void;
+  onItemPress: (messageId: string, chatId?: string) => void;
   showChatContext?: boolean;
-  chatNames?: Map<string, string>; // chatId -> name
+  chatNames?: Map<string, string>;
   emptyMessage?: string;
   emptySubmessage?: string;
   emptyExample?: string;
@@ -30,7 +31,7 @@ interface CalendarListProps {
   };
 }
 
-export const CalendarList: React.FC<CalendarListProps> = ({
+export const CalendarListView: React.FC<CalendarListViewProps> = ({
   events,
   onItemPress,
   showChatContext = false,
@@ -63,16 +64,6 @@ export const CalendarList: React.FC<CalendarListProps> = ({
     return timestamp > Date.now();
   };
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
   return (
     <ScrollView style={styles.scrollView}>
       {events.map((event, index) => {
@@ -80,7 +71,9 @@ export const CalendarList: React.FC<CalendarListProps> = ({
         return (
           <TouchableOpacity
             key={`${item.id}-${index}`}
-            onPress={() => onItemPress(item.extractedFrom, item.chatId || '')}
+            onPress={() =>
+              onItemPress(item.extractedFrom, item.chatId || undefined)
+            }
           >
             <Box
               style={[
@@ -194,6 +187,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderLeftWidth: 4,
     marginBottom: 12,
+    marginHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,

@@ -33,7 +33,7 @@ import { useAIStore } from '@/store/ai';
 import { RootStackParamList } from '@/types/navigation';
 import { AIActionSheet } from '@/components/AIActionSheet';
 import { PriorityActionSheet } from '@/components/PriorityActionSheet';
-import { CalendarActionSheet } from '@/components/CalendarActionSheet';
+import { CalendarActionSheet } from '@/components/calendar';
 
 import AuthScreen from '@/screens/AuthScreen';
 import ChatListScreen from '@/screens/ChatListScreen';

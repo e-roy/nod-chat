@@ -144,6 +144,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // CRITICAL: Clean up ALL listeners BEFORE signing out to prevent permission errors
       const { useChatStore } = await import('./chat');
       const { usePresenceStore } = await import('./presence');
+      const { useAIStore } = await import('./ai');
+      const { useGroupStore } = await import('./groups');
 
       // Clean up notification listeners
       cleanupNotificationListeners();
@@ -158,8 +160,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Disconnect chat (which also cleans up presence)
       useChatStore.getState().disconnect();
 
+      // Disconnect groups
+      useGroupStore.getState().disconnect();
+
       // Extra cleanup to ensure presence listeners are gone
       usePresenceStore.getState().cleanup();
+
+      // Clean up AI store listeners (priorities, calendar, etc.)
+      useAIStore.getState().cleanup();
 
       // Small delay to ensure all cleanup completes
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -234,10 +242,21 @@ onAuthStateChanged(auth, async firebaseUser => {
     try {
       cleanupNotificationListeners();
       const { useChatStore } = await import('./chat');
+      const { usePresenceStore } = await import('./presence');
+      const { useAIStore } = await import('./ai');
+      const { useGroupStore } = await import('./groups');
+
       const chatStore = useChatStore.getState();
       if (chatStore.transport) {
         chatStore.disconnect();
       }
+
+      // Disconnect groups
+      useGroupStore.getState().disconnect();
+
+      // Clean up presence and AI listeners
+      usePresenceStore.getState().cleanup();
+      useAIStore.getState().cleanup();
     } catch (error) {
       // Ignore errors during cleanup
     }

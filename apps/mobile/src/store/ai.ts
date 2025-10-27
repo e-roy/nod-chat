@@ -51,6 +51,7 @@ interface AIStore {
   searchMessages: (chatId: string, query: string) => Promise<SearchResult[]>;
   unsubscribeFromChat: (chatId: string) => void;
   clearError: (chatId: string) => void;
+  cleanup: () => void;
 }
 
 export const useAIStore = create<AIStore>((set, get) => ({
@@ -602,6 +603,44 @@ export const useAIStore = create<AIStore>((set, get) => ({
       const newErrors = new Map(state.errors);
       newErrors.delete(chatId);
       return { errors: newErrors };
+    });
+  },
+
+  // Cleanup all listeners (call on logout)
+  cleanup: () => {
+    const {
+      priorityListeners,
+      calendarListeners,
+      userPriorityListener,
+      userCalendarListener,
+    } = get();
+
+    // Unsubscribe from all chat-level listeners
+    priorityListeners.forEach(unsubscribe => unsubscribe());
+    calendarListeners.forEach(unsubscribe => unsubscribe());
+
+    // Unsubscribe from user-level listeners
+    if (userPriorityListener) {
+      userPriorityListener();
+    }
+    if (userCalendarListener) {
+      userCalendarListener();
+    }
+
+    // Reset state
+    set({
+      chatAISummaries: new Map(),
+      chatPriorities: new Map(),
+      chatCalendar: new Map(),
+      userPriorities: null,
+      userCalendar: null,
+      searchResults: new Map(),
+      loading: new Map(),
+      errors: new Map(),
+      priorityListeners: new Map(),
+      calendarListeners: new Map(),
+      userPriorityListener: null,
+      userCalendarListener: null,
     });
   },
 

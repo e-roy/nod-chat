@@ -15,6 +15,7 @@ import { useThemeStore } from '@/store/theme';
 import { getColors } from '@/utils/colors';
 import { useAIStore } from '@/store/ai';
 import { useChatStore } from '@/store/chat';
+import { useGroupStore } from '@/store/groups';
 import { PriorityList } from '@/components/PriorityList';
 
 export default function PrioritiesScreen() {
@@ -26,6 +27,11 @@ export default function PrioritiesScreen() {
   const { userPriorities, loadUserPriorities, loading, errors, clearError } =
     useAIStore();
   const { scrollToMessage, chats } = useChatStore();
+  const {
+    groups,
+    loadGroups,
+    initializeTransport: initializeGroupTransport,
+  } = useGroupStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isLoading = loading.get('user-priorities') ?? false;
@@ -34,6 +40,9 @@ export default function PrioritiesScreen() {
   useEffect(() => {
     if (user) {
       loadUserPriorities(user.uid);
+      // Load groups so we can navigate to them
+      initializeGroupTransport();
+      loadGroups();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -48,7 +57,7 @@ export default function PrioritiesScreen() {
     return b.timestamp - a.timestamp;
   });
 
-  // Create a map of chatId -> chat name
+  // Create a map of chatId -> chat name (including groups)
   const chatNames = new Map<string, string>();
   chats.forEach(chat => {
     // For one-on-one chats, get the other participant's name
@@ -58,6 +67,10 @@ export default function PrioritiesScreen() {
       // Show "Chat" for one-on-one chats
       chatNames.set(chat.id, 'Chat');
     }
+  });
+  // Add group names
+  groups.forEach(group => {
+    chatNames.set(group.id, group.name);
   });
 
   const handleItemPress = async (
@@ -69,20 +82,25 @@ export default function PrioritiesScreen() {
       level === 'urgent' ? 'priority-urgent' : 'priority-high';
 
     try {
-      // Find the chat
-      const chat = chats.find(c => c.id === chatId);
-      if (!chat) {
-        return;
-      }
+      // Check if it's a group chat first
+      const isGroup = chatId.startsWith('group_');
 
-      // Navigate to the chat screen first
-      if (chat.name) {
-        // Group chat
+      if (isGroup) {
+        // Find in groups
+        const group = groups.find(g => g.id === chatId);
+        if (!group) {
+          return;
+        }
+
         navigation.navigate('GroupChat', {
           groupId: chatId,
-          groupName: chat.name,
         });
       } else {
+        // Find in regular chats
+        const chat = chats.find(c => c.id === chatId);
+        if (!chat) {
+          return;
+        }
         // One-on-one chat - get other participant info
         const otherParticipantId = chat.participants.find(p => p !== user?.uid);
         if (!otherParticipantId) {
@@ -111,9 +129,21 @@ export default function PrioritiesScreen() {
       // Wait for navigation and messages to load
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Scroll to the message
-      await scrollToMessage(chatId, messageId, highlightType);
-    } catch {
+      // Scroll to the message with retries
+      let retries = 0;
+      const maxRetries = 5;
+      while (retries < maxRetries) {
+        try {
+          await scrollToMessage(chatId, messageId, highlightType);
+          break;
+        } catch (err) {
+          retries++;
+          if (retries < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+      }
+    } catch (err) {
       // Silently handle errors
     }
   };
