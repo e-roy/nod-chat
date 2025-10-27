@@ -38,14 +38,14 @@ export const colors = {
     },
     // Text
     text: {
-      primary: '#F5F5F5', // --color-typography-900
-      secondary: '#A3A3A3', // --color-typography-500
-      muted: '#D4D4D4', // --color-typography-600
+      primary: '#FFFFFF', // --color-typography-900 (improved contrast)
+      secondary: '#D1D1D1', // --color-typography-500 (improved contrast)
+      muted: '#A3A3A3', // --color-typography-600 (improved contrast)
       inverse: '#171717', // --color-typography-0
     },
     // Borders
     border: {
-      default: '#535252', // --color-outline-200
+      default: '#666666', // --color-outline-200 (improved visibility)
       muted: '#272624', // --color-outline-50
     },
     // Semantic colors

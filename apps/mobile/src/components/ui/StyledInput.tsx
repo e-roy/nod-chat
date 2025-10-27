@@ -121,7 +121,12 @@ const StyledInput: React.FC<StyledInputProps> = ({
   const showMicButton = enableSpeechToText && value === '';
 
   return (
-    <Box style={{ position: 'relative', flex: 1 }}>
+    <Box
+      style={{
+        position: 'relative',
+        flex: style?.flex !== undefined ? style.flex : 1,
+      }}
+    >
       <Input
         style={{
           backgroundColor: colors.bg.secondary,

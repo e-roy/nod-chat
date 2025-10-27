@@ -251,6 +251,7 @@ const ChatScreen: React.FC = () => {
           data={chatMessages}
           keyExtractor={item => item.id}
           renderItem={renderMessage}
+          inverted={true}
           style={[styles.container, { backgroundColor: colors.bg.primary }]}
           contentContainerStyle={{ paddingVertical: 12 }}
           onScrollToIndexFailed={info => {

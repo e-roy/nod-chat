@@ -257,9 +257,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
       >
         <VStack flex={1} justifyContent="center" alignItems="center">
           <Spinner size="large" />
-          <RNText
-            style={[styles.loadingText, { color: colors.text.secondary }]}
-          >
+          <RNText style={[styles.loadingText, { color: colors.text.primary }]}>
             Loading group...
           </RNText>
         </VStack>
@@ -283,6 +281,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
             backgroundColor: colors.bg.primary,
             borderBottomWidth: 1,
             borderBottomColor: colors.border.default,
+            paddingBottom: 8,
           }}
         >
           <HStack
@@ -303,7 +302,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
                 {group.name}
               </RNText>
               <RNText
-                style={[styles.memberCount, { color: colors.text.muted }]}
+                style={[styles.memberCount, { color: colors.text.secondary }]}
               >
                 {group.members.length} member
                 {group.members.length !== 1 ? 's' : ''}
@@ -321,6 +320,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
           data={chatMessages}
           keyExtractor={item => item.id}
           renderItem={renderMessage}
+          inverted={true}
           style={{ flex: 1, backgroundColor: colors.bg.primary }}
           contentContainerStyle={{ paddingVertical: 12 }}
           onScrollToIndexFailed={info => {
@@ -339,12 +339,12 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ route }) => {
               style={{ padding: 32 }}
             >
               <RNText
-                style={[styles.emptyTitle, { color: colors.text.secondary }]}
+                style={[styles.emptyTitle, { color: colors.text.primary }]}
               >
                 No messages yet
               </RNText>
               <RNText
-                style={[styles.emptySubtitle, { color: colors.text.muted }]}
+                style={[styles.emptySubtitle, { color: colors.text.secondary }]}
               >
                 Start the conversation!
               </RNText>

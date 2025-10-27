@@ -160,7 +160,13 @@ const GroupCreateScreen = () => {
             </Avatar>
 
             <VStack flex={1}>
-              <Text style={{ fontSize: 16, fontWeight: '500' }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '500',
+                  color: colors.text.primary,
+                }}
+              >
                 {item.displayName || item.email}
               </Text>
               <RNText style={[styles.email, { color: colors.text.secondary }]}>
@@ -191,9 +197,7 @@ const GroupCreateScreen = () => {
       >
         <VStack flex={1} justifyContent="center" alignItems="center">
           <Spinner size="large" />
-          <RNText
-            style={[styles.loadingText, { color: colors.text.secondary }]}
-          >
+          <RNText style={[styles.loadingText, { color: colors.text.primary }]}>
             Loading users...
           </RNText>
         </VStack>
@@ -205,27 +209,47 @@ const GroupCreateScreen = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg.primary }]}
     >
-      <VStack flex={1} style={{ padding: 16 }} space="md">
-        <VStack space="sm">
-          <Text style={{ fontSize: 16, fontWeight: '500' }}>Group Name</Text>
+      <VStack flex={1} style={{ padding: 16 }}>
+        {/* Group Name Section */}
+        <VStack space="sm" style={{ marginBottom: 16 }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: '500',
+              color: colors.text.primary,
+            }}
+          >
+            Group Name
+          </Text>
           <StyledInput
             placeholder="Enter group name"
             value={groupName}
             onChangeText={setGroupName}
+            style={{ flex: 0 }}
           />
+        </VStack>
+
+        {/* Create Button - Separate from input */}
+        <Box style={{ marginBottom: 16 }}>
           <Button
             onPress={handleCreateGroup}
-            isDisabled={
+            disabled={
               creating || !groupName.trim() || selectedUsers.length === 0
             }
-            style={{ marginTop: 16 }}
           >
             <ButtonText>{creating ? 'Creating...' : 'Create Group'}</ButtonText>
           </Button>
-        </VStack>
+        </Box>
 
-        <VStack space="sm">
-          <Text className="text-base font-medium">
+        {/* Members Selection Section */}
+        <VStack space="sm" flex={1}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: '500',
+              color: colors.text.primary,
+            }}
+          >
             Select Members ({selectedUsers.length} selected)
           </Text>
 
@@ -233,7 +257,7 @@ const GroupCreateScreen = () => {
             data={availableUsers}
             keyExtractor={item => item.uid}
             renderItem={renderUserItem}
-            style={{ height: '60%' }}
+            style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
           />
         </VStack>
