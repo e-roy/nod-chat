@@ -216,9 +216,11 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
         const existingIndex = chatMessages.findIndex(m => m.id === message.id);
 
         if (existingIndex === -1) {
-          // New message - add it
+          // New message - add it and sort by createdAt to maintain chronological order
+          const updatedChatMessages = [...chatMessages, message];
+          updatedChatMessages.sort((a, b) => a.createdAt - b.createdAt);
           const updatedMessages = new Map(currentMessages);
-          updatedMessages.set(chatId, [...chatMessages, message]);
+          updatedMessages.set(chatId, updatedChatMessages);
           set({ messages: updatedMessages });
 
           // If we're currently viewing this chat and the message is from another user
@@ -281,11 +283,13 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       readBy: isGroupMessage ? [] : undefined,
     };
 
-    // Optimistically add message to local state
+    // Optimistically add message to local state and sort to maintain chronological order
     const { messages } = get();
     const chatMessages = messages.get(chatId) || [];
+    const updatedChatMessages = [...chatMessages, message];
+    updatedChatMessages.sort((a, b) => a.createdAt - b.createdAt);
     const newMessages = new Map(messages);
-    newMessages.set(chatId, [...chatMessages, message]);
+    newMessages.set(chatId, updatedChatMessages);
     set({ messages: newMessages });
 
     // Check network status

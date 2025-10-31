@@ -209,11 +209,7 @@ const SettingsScreen: React.FC = () => {
         </VStack>
 
         {/* Sign Out Button */}
-        <Button
-          onPress={handleSignOut}
-          variant="outline"
-          style={styles.signOutButton}
-        >
+        <Button onPress={handleSignOut} style={styles.signOutButton}>
           <ButtonText>Sign Out</ButtonText>
         </Button>
       </ScrollView>
@@ -275,7 +271,6 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     marginTop: 32,
-    marginHorizontal: 16,
   },
 });
 

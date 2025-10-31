@@ -93,25 +93,40 @@ export class FirebaseTransport
     const messagesRef = collection(db, collectionName, chatId, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
-    const unsubscribe = onSnapshot(q, snapshot => {
-      snapshot.docChanges().forEach(change => {
-        // Listen for both new messages and status updates
-        if (change.type === 'added' || change.type === 'modified') {
-          const data = change.doc.data();
-          const message: ChatMessage = {
-            id: change.doc.id,
-            chatId,
-            senderId: data.senderId,
-            text: data.text,
-            imageUrl: data.imageUrl,
-            createdAt: toTimestamp(data.createdAt),
-            status: data.status || 'sent',
-            readBy: data.readBy || undefined,
-          };
-          cb(message);
+    let isInitialSnapshot = true;
+
+    const unsubscribe = onSnapshot(
+      q,
+      snapshot => {
+        // On initial snapshot, docChanges() will have all documents with type 'added'
+        // We skip these since they're loaded via requestHistory
+        if (isInitialSnapshot) {
+          isInitialSnapshot = false;
+          return;
         }
-      });
-    });
+
+        snapshot.docChanges().forEach(change => {
+          // Listen for both new messages and status updates
+          if (change.type === 'added' || change.type === 'modified') {
+            const data = change.doc.data();
+            const message: ChatMessage = {
+              id: change.doc.id,
+              chatId,
+              senderId: data.senderId,
+              text: data.text,
+              imageUrl: data.imageUrl,
+              createdAt: toTimestamp(data.createdAt),
+              status: data.status || 'sent',
+              readBy: data.readBy || undefined,
+            };
+            cb(message);
+          }
+        });
+      },
+      error => {
+        console.error('Error in onMessage listener:', error);
+      }
+    );
 
     this.unsubscribeCallbacks.set(chatId, unsubscribe);
     return unsubscribe;
